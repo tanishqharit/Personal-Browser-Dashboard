@@ -6,15 +6,17 @@ const $ = (sel) => document.querySelector(sel);
 // Must match slug() in scripts/fetch_icons.py.
 const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-// Icon priority: "icon" in links.json → icons/<slug>.png → colored letter tile.
+// Icon priority: local "icon" path in links.json → icons/<slug>.png → colored letter tile.
+// (An "icon" URL is only a download source for scripts/fetch_icons.py.)
 function iconEl(link) {
   const box = document.createElement("span");
   box.className = "icon";
 
+  const local = typeof link.icon === "string" && !link.icon.startsWith("http");
   const img = new Image();
   img.alt = "";
   img.decoding = "async";
-  img.src = link.icon || `icons/${slug(link.name)}.png`;
+  img.src = local ? link.icon : `icons/${slug(link.name)}.png`;
   img.onerror = () => {
     const s = document.createElement("span");
     s.className = "letter";

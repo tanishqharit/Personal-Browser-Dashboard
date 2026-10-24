@@ -4,55 +4,55 @@
     {
       "name": "Everyday",
       "links": [
-        { "name": "iCloud", "url": "https://www.icloud.com" },
-        { "name": "Gmail", "url": "https://mail.google.com" },
-        { "name": "YouTube", "url": "https://www.youtube.com" },
-        { "name": "YouTube Music", "url": "https://music.youtube.com" },
-        { "name": "Muse", "url": "https://museapp.com" }
+        {"name": "iCloud", "url": "https://www.icloud.com"},
+        {"name": "Gmail", "url": "https://mail.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png"]},
+        {"name": "YouTube", "url": "https://www.youtube.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/YouTube_full-color_icon_(2017).svg"]},
+        {"name": "YouTube Music", "url": "https://music.youtube.com"},
+        {"name": "Muse", "url": "https://museapp.com"}
       ]
     },
     {
       "name": "Finance",
       "links": [
-        { "name": "Chase", "url": "https://www.chase.com" },
-        { "name": "Apple Card", "url": "https://card.apple.com" },
-        { "name": "Discover", "url": "https://www.discover.com" },
-        { "name": "PayPal", "url": "https://www.paypal.com" },
-        { "name": "Splitwise", "url": "https://secure.splitwise.com" },
-        { "name": "Paytm", "url": "https://paytm.com" },
-        { "name": "Link", "url": "https://link.com" },
-        { "name": "Experian", "url": "https://www.experian.com" }
+        {"name": "Chase", "url": "https://www.chase.com"},
+        {"name": "Apple Card", "url": "https://card.apple.com"},
+        {"name": "Discover", "url": "https://www.discover.com"},
+        {"name": "PayPal", "url": "https://www.paypal.com"},
+        {"name": "Splitwise", "url": "https://secure.splitwise.com"},
+        {"name": "Paytm", "url": "https://paytm.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Paytm_Logo_(standalone).svg"]},
+        {"name": "Link", "url": "https://link.com"},
+        {"name": "Experian", "url": "https://www.experian.com"}
       ]
     },
     {
       "name": "AI",
       "links": [
-        { "name": "Claude", "url": "https://claude.ai" },
-        { "name": "ChatGPT", "url": "https://chatgpt.com" }
+        {"name": "Claude", "url": "https://claude.ai"},
+        {"name": "ChatGPT", "url": "https://chatgpt.com"}
       ]
     },
     {
       "name": "Social",
       "links": [
-        { "name": "Reddit", "url": "https://www.reddit.com" },
-        { "name": "X", "url": "https://x.com" },
-        { "name": "Discord", "url": "https://discord.com/app" }
+        {"name": "Reddit", "url": "https://www.reddit.com"},
+        {"name": "X", "url": "https://x.com"},
+        {"name": "Discord", "url": "https://discord.com/app"}
       ]
     },
     {
       "name": "Shopping",
       "links": [
-        { "name": "Amazon", "url": "https://www.amazon.com" },
-        { "name": "Walmart", "url": "https://www.walmart.com" }
+        {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
+        {"name": "Walmart", "url": "https://www.walmart.com"}
       ]
     },
     {
       "name": "Personal",
       "links": [
-        { "name": "GitHub", "url": "https://github.com" },
-        { "name": "Portfolio", "url": "https://tanishqharit.github.io" },
-        { "name": "Google Drive", "url": "https://drive.google.com" },
-        { "name": "Google Calendar", "url": "https://calendar.google.com" }
+        {"name": "GitHub", "url": "https://github.com"},
+        {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
+        {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
+        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]}
       ]
     }
   ]

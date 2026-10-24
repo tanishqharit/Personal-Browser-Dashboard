@@ -39,7 +39,7 @@ jobs:
       - name: Fetch missing icons
         continue-on-error: true
         run: |
-          pip install --quiet pillow
+          pip install --quiet pillow cairosvg
           python3 scripts/fetch_icons.py
 
       # Saves new icons into the repo so they are only downloaded once.

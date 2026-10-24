@@ -31,7 +31,11 @@ then commits it back here. Each icon is only downloaded once.
 - **File name** = link name, lowercased, spaces → dashes: "YouTube Music" → `icons/youtube-music.png`.
 - **Don't like one?** Replace that PNG with your own (square, 256×256 or bigger). It's never overwritten.
 - **Want it re-downloaded?** Delete the PNG and push.
-- **Different file name?** Add `"icon": "icons/whatever.png"` to the link.
+- **Site's icon is bad or blurry?** Point it at a better source and the deploy downloads it once:
+  `"icon": "https://…/logo.svg"`, or a list to try in order. SVGs (vector) are always sharp —
+  Wikimedia Commons has most brand logos: `https://commons.wikimedia.org/wiki/Special:FilePath/<File>.svg`.
+  Delete the old PNG so it re-downloads.
+- **Different file name?** `"icon": "icons/whatever.png"` (a path, not a URL) is used as is.
 - No icon found → a colored letter tile.
 
 Tiles are cut to a macOS-style squircle by `icons/squircle.svg`, so don't round the corners yourself.

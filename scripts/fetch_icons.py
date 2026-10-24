@@ -1,16 +1,24 @@
 """Download a sharp icon for every link in links.json that doesn't have one yet.
 
-Runs in GitHub Actions on each deploy. For each link it looks at what the site
-publishes (web app manifest icons, apple-touch-icon, <link rel=icon>), plus
-Google's favicon service as a fallback, keeps the biggest image, and saves it as
-icons/<slug>.png at 256x256.
+Runs in GitHub Actions on each deploy and saves icons/<slug>.png at 256x256.
 
-  - Opaque square icons (most apple-touch-icons) fill the tile edge to edge.
-  - Logos with a transparent background get padding on a solid tile, like
-    macOS app icons.
+Where it looks, best first:
+  1. "icon" URLs from links.json (string or list) - for sites with poor icons
+  2. web app manifest icons marked "maskable" (made to fill a shape edge to edge)
+  3. apple-touch-icon (the site's own home-screen app icon)
+  4. other manifest icons, then <link rel=icon>, then /apple-touch-icon.png
+  5. Google's favicon service
 
-Icons that already exist are never touched, so a hand-made icons/<slug>.png
-always wins. Delete a file to make it re-download.
+The first source that is sharp enough (>= GOOD px) wins; otherwise the biggest
+one found. SVGs are rendered as vectors, so they are always sharp.
+
+How the tile is made:
+  - Opaque square icon             -> fills the tile
+  - App icon with rounded corners  -> cropped and filled (the page applies its own corners)
+  - Logo on transparent background -> padded on a solid tile, like macOS icons
+
+Existing icons are never touched, so a hand-made icons/<slug>.png always wins.
+Delete a file to make it re-download.
 """
 
 import io
@@ -24,9 +32,15 @@ from pathlib import Path
 
 from PIL import Image
 
+try:
+    import cairosvg
+except Exception:  # missing system cairo: just skip SVGs
+    cairosvg = None
+
 ROOT = Path(__file__).resolve().parent.parent
 ICONS = ROOT / "icons"
 SIZE = 256
+GOOD = 160
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
 
 
@@ -38,13 +52,13 @@ def slug(name):
 def get(url, timeout=15):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.geturl(), r.read(3_000_000)
+        return r.geturl(), r.read(5_000_000)
 
 
 class IconLinks(HTMLParser):
     def __init__(self):
         super().__init__()
-        self.icons, self.manifest = [], None
+        self.touch, self.icons, self.manifest = [], [], None
 
     def handle_starttag(self, tag, attrs):
         if tag != "link":
@@ -56,70 +70,110 @@ class IconLinks(HTMLParser):
             return
         if "manifest" in rel:
             self.manifest = href
-        elif "icon" in rel or "apple-touch-icon" in rel or "apple-touch-icon-precomposed" in rel:
+        elif "apple-touch-icon" in rel or "apple-touch-icon-precomposed" in rel:
+            self.touch.append(href)
+        elif "icon" in rel:
             self.icons.append(href)
 
 
-def candidates(url):
-    """Icon URLs to try, roughly best-first."""
-    out = []
+def site_candidates(url):
+    """Icon URLs the site itself publishes, best-first."""
+    maskable, touch, other, rel_icons = [], [], [], []
+    base = url
     try:
-        final, body = get(url)
+        base, body = get(url)
         p = IconLinks()
         p.feed(body.decode("utf-8", "ignore"))
+        touch = [urllib.parse.urljoin(base, h) for h in p.touch]
+        rel_icons = [urllib.parse.urljoin(base, h) for h in p.icons]
         if p.manifest:
-            murl = urllib.parse.urljoin(final, p.manifest)
+            murl = urllib.parse.urljoin(base, p.manifest)
             try:
                 _, mbody = get(murl)
-                icons = json.loads(mbody).get("icons", [])
-                out += [urllib.parse.urljoin(murl, i["src"]) for i in icons if "src" in i]
+                for i in json.loads(mbody).get("icons", []):
+                    purpose = i.get("purpose", "any")
+                    if "src" not in i or "monochrome" in purpose:
+                        continue
+                    src = urllib.parse.urljoin(murl, i["src"])
+                    (maskable if "maskable" in purpose else other).append(src)
             except Exception as e:
                 print(f"    manifest failed: {e}")
-        out += [urllib.parse.urljoin(final, h) for h in p.icons]
-        base = final
     except Exception as e:
         print(f"    page failed: {e}")
-        base = url
     origin = "{0.scheme}://{0.netloc}".format(urllib.parse.urlparse(base))
-    out += [origin + "/apple-touch-icon.png"]
     host = urllib.parse.urlparse(url).hostname
-    out += [f"https://www.google.com/s2/favicons?domain={host}&sz=256"]
-    seen = set()
-    return [u for u in out if not (u in seen or seen.add(u)) and not u.lower().split("?")[0].endswith(".svg")]
+    return (
+        maskable + touch + other + rel_icons
+        + [origin + "/apple-touch-icon.png", f"https://www.google.com/s2/favicons?domain={host}&sz=256"]
+    )
 
 
 def load(url):
+    """Returns (image, size_score) or None. SVGs score as huge since they scale."""
     try:
         _, data = get(url)
+        head = data[:500].lstrip().lower()
+        if url.lower().split("?")[0].endswith(".svg") or head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in data[:2000].lower()):
+            if cairosvg is None:
+                return None
+            png = cairosvg.svg2png(bytestring=data, output_width=SIZE * 2, output_height=SIZE * 2)
+            return Image.open(io.BytesIO(png)).convert("RGBA"), 10_000
         img = Image.open(io.BytesIO(data))
         if img.format == "ICO":
             # ICO files hold several sizes; take the biggest.
             img = img.ico.getimage(max(img.ico.sizes()))
         img.load()
-        return img.convert("RGBA")
+        img = img.convert("RGBA")
+        return img, min(img.size)
     except Exception:
         return None
 
 
 def make_tile(img):
+    # Fit the drawing into a square canvas (wide logos get transparent bars).
     w, h = img.size
-    s = min(w, h)
-    img = img.crop(((w - s) // 2, (h - s) // 2, (w - s) // 2 + s, (h - s) // 2 + s))
+    s = max(w, h)
+    sq = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    sq.alpha_composite(img, ((s - w) // 2, (s - h) // 2))
+    img = sq
 
     alpha = img.getchannel("A")
-    see_through = sum(1 for a in alpha.getdata() if a < 200) / (s * s)
+    total = s * s
+    clear = sum(1 for a in alpha.getdata() if a < 200) / total
 
-    if see_through < 0.03:
-        # Already a full square icon: fill the tile.
+    if clear < 0.03:
+        # Opaque square icon: fill the tile.
         return img.resize((SIZE, SIZE), Image.LANCZOS)
+
+    bbox = alpha.point(lambda a: 255 if a >= 200 else 0).getbbox()
+    if bbox:
+        bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
+        inside = img.crop(bbox).getchannel("A")
+        solid = sum(1 for a in inside.getdata() if a >= 200) / max(bw * bh, 1)
+        if solid > 0.85 and abs(bw - bh) <= max(bw, bh) * 0.05:
+            # A square app icon with its own rounded corners (and maybe margin):
+            # crop to it and fill the tile. Corners get the icon's edge color.
+            crop = img.crop(bbox).resize((SIZE, SIZE), Image.LANCZOS)
+            edge = crop.getpixel((SIZE // 2, 3))
+            tile = Image.new("RGBA", (SIZE, SIZE), edge[:3] + (255,))
+            tile.alpha_composite(crop)
+            return tile
 
     # Transparent logo: pick a background it shows up on, then pad it.
     px = [p for p in img.getdata() if p[3] > 200]
     lum = sum(0.299 * r + 0.587 * g + 0.114 * b for r, g, b, _ in px) / max(len(px), 1)
     bg = (28, 28, 30, 255) if lum > 200 else (255, 255, 255, 255)
 
+    if bbox:
+        img = img.crop(bbox)
+        w, h = img.size
+        s = max(w, h)
+        sq = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+        sq.alpha_composite(img, ((s - w) // 2, (s - h) // 2))
+        img = sq
+
     tile = Image.new("RGBA", (SIZE, SIZE), bg)
-    inner = int(SIZE * 0.68) if s >= 96 else min(int(SIZE * 0.5), s * 4)
+    inner = int(SIZE * 0.62)
     logo = img.resize((inner, inner), Image.LANCZOS)
     off = (SIZE - inner) // 2
     tile.alpha_composite(logo, (off, off))
@@ -130,30 +184,36 @@ def main():
     data = json.loads((ROOT / "links.json").read_text())
     links = [l for sec in data["sections"] for l in sec["links"]]
     ICONS.mkdir(exist_ok=True)
+    print(f"SVG support: {'yes' if cairosvg else 'no'}")
     added = 0
 
     for link in links:
-        if link.get("icon"):
-            continue
+        given = link.get("icon") or []
+        given = [given] if isinstance(given, str) else given
+        if given and not given[0].startswith("http"):
+            continue  # points at a file in the repo: use as is
         dest = ICONS / f"{slug(link['name'])}.png"
         if dest.exists():
             continue
+
         print(f"{link['name']}  ({link['url']})")
         best = None
-        for c in candidates(link["url"]):
-            img = load(c)
-            if img is None:
+        for c in given + site_candidates(link["url"]):
+            got = load(c)
+            if got is None:
                 continue
-            print(f"    {min(img.size):>4}px  {c}")
-            if best is None or min(img.size) > min(best.size):
-                best = img
-            if min(best.size) >= SIZE:
+            img, score = got
+            print(f"    {'svg' if score == 10_000 else score:>5}  {c}")
+            if best is None or score > best[1]:
+                best = got
+            if score >= GOOD:
+                best = got  # good enough and earlier in the list = preferred
                 break
         if best is None:
             print("    no icon found, will show a letter tile")
             continue
-        make_tile(best).save(dest, optimize=True)
-        print(f"    saved {dest.name} from {min(best.size)}px source")
+        make_tile(best[0]).save(dest, optimize=True)
+        print(f"    saved {dest.name}")
         added += 1
 
     print(f"\n{added} new icon(s)")
