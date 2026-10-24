@@ -7,9 +7,10 @@ on:
       - main
   workflow_dispatch:
 
-# Permissions the built-in GITHUB_TOKEN needs to publish to Pages
+# Permissions the built-in GITHUB_TOKEN needs:
+# contents: write lets it commit new icons back; pages + id-token let it publish
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -33,10 +34,29 @@ jobs:
       - name: Check links.json is valid JSON   # fail early instead of shipping a broken page
         run: python3 -m json.tool links.json > /dev/null
 
+      # Downloads a sharp icon for any link that has no icons/<name>.png yet.
+      # A failure here never blocks the deploy; those links show a letter tile.
+      - name: Fetch missing icons
+        continue-on-error: true
+        run: |
+          pip install --quiet pillow
+          python3 scripts/fetch_icons.py
+
+      # Saves new icons into the repo so they are only downloaded once.
+      # Pushes made with GITHUB_TOKEN don't start another run, so this can't loop.
+      - name: Commit new icons
+        continue-on-error: true
+        run: |
+          git add icons
+          if git diff --cached --quiet; then echo "no new icons"; exit 0; fi
+          git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+            commit -m "Add fetched icons"
+          git pull --rebase origin main && git push origin HEAD:main
+
       # Browsers cache files for ~10 min. Stamping each deploy's commit id onto
-      # style.css/app.js makes a new index.html always fetch the matching new files.
+      # file URLs makes a new page always load the matching new files.
       - name: Stamp asset versions
-        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" index.html
+        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" index.html app.js
 
       - uses: actions/configure-pages@v5
 
