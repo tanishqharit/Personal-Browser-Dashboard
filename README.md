@@ -12,11 +12,26 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 | `scripts/fetch_icons.py` | Downloads missing icons during deploy. |
 | `index.html` | Page skeleton. |
 | `style.css` | Look and layout. Colors are at the top. |
-| `app.js` | Reads `links.json` and draws the page and sidebar. |
+| `app.js` | Draws the page and sidebar; the add/edit form saves to GitHub. |
 | `manifest.webmanifest` | Lets you "Add to Home Screen" as an app. |
 | `.github/workflows/deploy.yml` | Checks `links.json`, fetches missing icons, publishes to Pages. |
 
-## Add a link
+## Edit from the page (any device)
+
+- **＋ Add Link** (bottom of the sidebar): name, URL, optional icon image, and group.
+  Pick **＋ New group…** to create a group; **Manage groups** deletes one (its links move to a group you choose).
+- **Edit** → tap any tile to change it, move it to another group, or delete it.
+  On a laptop you can also drag a tile onto a group in the sidebar. **Done** to leave edit mode.
+
+Saving commits `links.json` (and the icon, if you chose one) straight to this repo through the GitHub API,
+so the normal deploy publishes it everywhere in about a minute.
+
+**One-time setup per device:** the first Save asks for a GitHub token. Create a
+[fine-grained token](https://github.com/settings/personal-access-tokens/new) with
+*Only select repositories → Personal-Browser-Dashboard* and *Contents: Read and write*, then paste it in.
+It's kept only in that browser's storage. "GitHub connection…" in the form replaces or forgets it.
+
+## Add a link by hand
 
 ```json
 { "name": "Notion", "url": "https://notion.so" }

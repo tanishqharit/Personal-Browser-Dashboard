@@ -15,8 +15,70 @@
   <link rel="stylesheet" href="style.css?v=dev">
 </head>
 <body>
-  <nav id="sidebar" aria-label="Sections"></nav>
+  <nav id="sidebar" aria-label="Sections">
+    <div id="groups"></div>
+    <div class="actions">
+      <button type="button" id="add-btn" aria-label="Add Link">＋<span class="wide"> Add Link</span></button>
+      <button type="button" id="edit-btn" aria-pressed="false">Edit</button>
+    </div>
+  </nav>
   <main id="sections"></main>
+
+  <dialog id="link-dialog">
+    <form id="link-form" novalidate>
+      <h2 id="link-title">Add link</h2>
+
+      <div class="icon-row">
+        <span class="icon-wrap"><span class="icon" id="icon-preview"></span></span>
+        <div>
+          <label class="file-btn">Choose icon… <input type="file" id="f-icon" accept="image/*"></label>
+          <button type="button" id="clear-icon" class="linklike" hidden>Remove</button>
+          <p class="hint">Optional. Leave it and the site's own icon is fetched automatically.</p>
+        </div>
+      </div>
+
+      <label>Name <input id="f-name" required maxlength="40" autocomplete="off"></label>
+      <label>URL <input id="f-url" required inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+      <label>Group <select id="f-group"></select></label>
+      <label id="new-group-row" hidden>New group name <input id="f-new-group" maxlength="30" autocomplete="off"></label>
+
+      <details id="manage-groups">
+        <summary>Manage groups</summary>
+        <ul id="group-list"></ul>
+      </details>
+
+      <p class="status" id="link-status" role="status"></p>
+
+      <div class="buttons">
+        <button type="button" id="delete-link" class="danger" hidden>Delete link</button>
+        <span class="spacer"></span>
+        <button type="button" data-close>Cancel</button>
+        <button type="submit" class="primary" id="save-link">Save</button>
+      </div>
+      <button type="button" id="token-btn" class="linklike small">GitHub connection…</button>
+    </form>
+  </dialog>
+
+  <dialog id="token-dialog">
+    <form id="token-form" novalidate>
+      <h2>Connect GitHub</h2>
+      <p>Saving writes to <code>links.json</code> in your repo, so this browser needs a GitHub token. It's stored only in this browser. Do this once per device.</p>
+      <ol>
+        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">a new fine-grained token</a>.</li>
+        <li><b>Repository access</b> → Only select repositories → <b>Personal-Browser-Dashboard</b>.</li>
+        <li><b>Permissions</b> → Repository → <b>Contents: Read and write</b>.</li>
+        <li>Generate, copy, and paste it here.</li>
+      </ol>
+      <label>Token <input id="f-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+      <p class="status" id="token-status" role="status"></p>
+      <div class="buttons">
+        <button type="button" id="token-forget" class="danger">Forget token</button>
+        <span class="spacer"></span>
+        <button type="button" data-close>Cancel</button>
+        <button type="submit" class="primary">Connect</button>
+      </div>
+    </form>
+  </dialog>
 
   <script src="app.js?v=dev" defer></script>
 </body>

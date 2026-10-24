@@ -6,6 +6,10 @@
   --tile: #1e1e22;
   --tile-hover: #2a2a30;
   --ring: #7c8cff;
+  --accent: #7c8cff;
+  --danger: #ff6b6b;
+  --sheet: #1c1c20;
+  --field: #26262c;
   --icon: 60px;
 }
 @media (prefers-color-scheme: light) {
@@ -15,10 +19,15 @@
     --muted: #6b6b75;
     --tile: #ffffff;
     --tile-hover: #e9e9ee;
+    --accent: #4f5fe8;
+    --danger: #d93838;
+    --sheet: #ffffff;
+    --field: #f0f0f3;
   }
 }
 
 * { box-sizing: border-box; margin: 0; }
+[hidden] { display: none !important; }
 
 body {
   background: var(--bg);
@@ -28,31 +37,51 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Phone: sidebar is a sticky, sideways-scrolling strip on top. */
+button, input, select { font: inherit; color: inherit; }
+
+/* Phone: sidebar is a sticky strip on top; groups scroll sideways, buttons stay put. */
 #sidebar {
   position: sticky;
   top: 0;
   z-index: 1;
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  align-items: center;
+  gap: 8px;
   padding: max(12px, env(safe-area-inset-top)) 16px 12px;
   background: var(--bg);
 }
-#sidebar::-webkit-scrollbar { display: none; }
 
-#sidebar a {
+#groups {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+#groups::-webkit-scrollbar { display: none; }
+
+#groups a, .actions button {
   flex: none;
   padding: 8px 14px;
+  border: 0;
   border-radius: 10px;
+  background: none;
   color: var(--muted);
   text-decoration: none;
   font-weight: 500;
+  text-align: left;
+  cursor: pointer;
 }
-#sidebar a:hover { color: var(--text); background: var(--tile); }
-#sidebar a.active { color: var(--text); background: var(--tile-hover); }
-#sidebar a:focus-visible { outline: 2px solid var(--ring); }
+#groups a:hover, .actions button:hover { color: var(--text); background: var(--tile); }
+#groups a.active { color: var(--text); background: var(--tile-hover); }
+#groups a.drop { color: var(--text); box-shadow: inset 0 0 0 2px var(--accent); }
+#groups a:focus-visible, .actions button:focus-visible { outline: 2px solid var(--ring); }
+
+.actions { display: flex; gap: 4px; flex: none; }
+.actions #add-btn { color: var(--accent); }
+.actions .wide { display: none; } /* phone: just "＋" */
+.actions #edit-btn[aria-pressed="true"] { color: var(--text); background: var(--tile-hover); }
 
 main {
   max-width: 1040px;
@@ -61,6 +90,7 @@ main {
 
 section + section { margin-top: 32px; }
 h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
+.empty { color: var(--muted); grid-column: 1 / -1; }
 
 .grid {
   display: grid;
@@ -69,6 +99,7 @@ h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 }
 
 .tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -99,11 +130,31 @@ h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 
 /* The mask would clip a box-shadow, so the wrapper casts it instead. */
 .icon-wrap {
+  display: block;
   filter: drop-shadow(0 2px 4px rgb(0 0 0 / .28));
   transition: transform .12s ease;
 }
 .tile:hover .icon-wrap { transform: translateY(-2px); }
 .tile:active .icon-wrap { transform: scale(.94); }
+
+/* Edit mode: tiles open the editor instead of the site, and can be dragged onto a group. */
+body.editing .tile { cursor: grab; }
+body.editing .tile .icon-wrap { animation: wiggle .3s ease-in-out infinite alternate; }
+body.editing .tile::after {
+  content: "✎";
+  position: absolute;
+  top: -6px;
+  right: calc(50% - var(--icon) / 2 - 6px);
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 12px;
+}
+@keyframes wiggle { from { rotate: -1.2deg; } to { rotate: 1.2deg; } }
 
 .label {
   font-size: 12px;
@@ -116,17 +167,101 @@ h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 
 .hidden { display: none; }
 
-/* Laptop/tablet: real sidebar on the left. */
+/* ---------- Dialogs ---------- */
+
+dialog {
+  margin: auto;
+  width: min(440px, calc(100% - 32px));
+  max-height: calc(100dvh - 32px);
+  padding: 0;
+  border: 0;
+  border-radius: 20px;
+  background: var(--sheet);
+  color: var(--text);
+  box-shadow: 0 20px 60px rgb(0 0 0 / .45);
+}
+dialog::backdrop { background: rgb(0 0 0 / .55); backdrop-filter: blur(4px); }
+
+dialog form { display: grid; gap: 14px; padding: 24px; }
+dialog h2 { margin: 0; }
+dialog p, dialog ol { color: var(--muted); font-size: 14px; }
+dialog ol { padding-left: 20px; display: grid; gap: 4px; }
+dialog a { color: var(--accent); }
+
+dialog label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted); }
+dialog input:not([type="file"]), dialog select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--field);
+  font-size: 16px; /* 16px stops iOS zooming in on focus */
+  font-weight: 400;
+  outline: none;
+}
+dialog input:focus-visible, dialog select:focus-visible { box-shadow: 0 0 0 2px var(--ring); }
+
+.icon-row { display: flex; gap: 16px; align-items: center; }
+.icon-row .hint { font-size: 12px; margin-top: 4px; }
+.file-btn {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--field);
+  color: var(--text);
+  font-weight: 500;
+  cursor: pointer;
+}
+.file-btn input { display: none; }
+
+details summary { cursor: pointer; color: var(--muted); font-size: 13px; font-weight: 600; }
+#group-list { list-style: none; padding: 8px 0 0; display: grid; gap: 6px; }
+#group-list li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+#group-list li > span:first-child { flex: 1; }
+#group-list small { color: var(--muted); }
+#group-list select { width: auto; flex: 1; padding: 6px 10px; font-size: 14px; }
+.move-to { font-size: 13px; color: var(--muted); }
+
+.status { min-height: 1.4em; color: var(--text); }
+
+.buttons { display: flex; gap: 8px; align-items: center; }
+.spacer { flex: 1; }
+.buttons button, button.small {
+  padding: 9px 16px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--field);
+  font-weight: 600;
+  cursor: pointer;
+}
+button.small { padding: 5px 10px; font-size: 13px; }
+button.primary { background: var(--accent); color: #fff; }
+button.danger { color: var(--danger); }
+button.linklike {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: default; }
+
+/* Laptop/tablet: real sidebar on the left, buttons pinned to its bottom. */
 @media (min-width: 720px) {
   :root { --icon: 72px; }
   body { display: grid; grid-template-columns: 200px 1fr; }
   #sidebar {
     flex-direction: column;
+    align-items: stretch;
     height: 100dvh;
-    overflow-y: auto;
-    padding: 48px 12px;
-    border-right: 1px solid var(--tile);
+    padding: 48px 12px 24px;
   }
+  #groups { flex-direction: column; overflow: visible auto; }
+  .actions { flex-direction: column; margin-top: auto; }
+  .actions .wide { display: inline; }
   main { padding: 48px 40px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 28px 12px; }
   .label { max-width: 100px; font-size: 13px; }
@@ -134,4 +269,5 @@ h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 
 @media (prefers-reduced-motion: reduce) {
   .icon-wrap { transition: none; }
+  body.editing .tile .icon-wrap { animation: none; }
 }
