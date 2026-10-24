@@ -1,0 +1,45 @@
+name: Deploy Dashboard to GitHub Pages
+
+# Trigger - run on every push to main, or manually from the Actions tab
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Permissions the built-in GITHUB_TOKEN needs to publish to Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Only one deploy at a time; a newer push cancels an older one still running
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy Dashboard to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    # Steps - no build needed: the repo files ARE the website
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links.json is valid JSON   # fail early instead of shipping a broken page
+        run: python3 -m json.tool links.json > /dev/null
+
+      - uses: actions/configure-pages@v5
+
+      - name: Package site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+      - name: Publish to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

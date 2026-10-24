@@ -1,0 +1,39 @@
+{
+  "title": "Dashboard",
+  "sections": [
+    {
+      "name": "Favorites",
+      "links": [
+        { "name": "iCloud", "url": "https://www.icloud.com" },
+        { "name": "Gmail", "url": "https://mail.google.com" },
+        { "name": "YouTube", "url": "https://www.youtube.com" },
+        { "name": "YouTube Music", "url": "https://music.youtube.com" },
+        { "name": "Chase", "url": "https://www.chase.com" },
+        { "name": "Apple Card", "url": "https://card.apple.com" },
+        { "name": "Discover", "url": "https://www.discover.com" },
+        { "name": "PayPal", "url": "https://www.paypal.com" },
+        { "name": "Splitwise", "url": "https://secure.splitwise.com" },
+        { "name": "Paytm", "url": "https://paytm.com" },
+        { "name": "Link", "url": "https://link.com" },
+        { "name": "Experian", "url": "https://www.experian.com" },
+        { "name": "Muse", "url": "https://museapp.com" },
+        { "name": "Claude", "url": "https://claude.ai" },
+        { "name": "ChatGPT", "url": "https://chatgpt.com" },
+        { "name": "Reddit", "url": "https://www.reddit.com" },
+        { "name": "X", "url": "https://x.com" },
+        { "name": "Discord", "url": "https://discord.com/app" },
+        { "name": "Amazon", "url": "https://www.amazon.com" },
+        { "name": "Walmart", "url": "https://www.walmart.com" },
+        {
+          "name": "Personal",
+          "folder": [
+            { "name": "GitHub", "url": "https://github.com" },
+            { "name": "Portfolio", "url": "https://tanishqharit.github.io" },
+            { "name": "Google Drive", "url": "https://drive.google.com" },
+            { "name": "Google Calendar", "url": "https://calendar.google.com" }
+          ]
+        }
+      ]
+    }
+  ]
+}
