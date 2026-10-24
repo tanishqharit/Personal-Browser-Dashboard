@@ -33,6 +33,11 @@ jobs:
       - name: Check links.json is valid JSON   # fail early instead of shipping a broken page
         run: python3 -m json.tool links.json > /dev/null
 
+      # Browsers cache files for ~10 min. Stamping each deploy's commit id onto
+      # style.css/app.js makes a new index.html always fetch the matching new files.
+      - name: Stamp asset versions
+        run: sed -i "s/?v=dev/?v=${GITHUB_SHA::7}/g" index.html
+
       - uses: actions/configure-pages@v5
 
       - name: Package site
