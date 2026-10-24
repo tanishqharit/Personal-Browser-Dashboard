@@ -12,24 +12,29 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 | `scripts/fetch_icons.py` | Downloads missing icons during deploy. |
 | `index.html` | Page skeleton. |
 | `style.css` | Look and layout. Colors are at the top. |
-| `app.js` | Draws the page and sidebar; the add/edit form saves to GitHub. |
+| `app.js` | Draws the page; Add Link, Manage and GitHub Connection panels save to GitHub. |
 | `manifest.webmanifest` | Lets you "Add to Home Screen" as an app. |
 | `.github/workflows/deploy.yml` | Checks `links.json`, fetches missing icons, publishes to Pages. |
 
 ## Edit from the page (any device)
 
-- **＋ Add Link** (bottom of the sidebar): name, URL, optional icon image, and group.
-  Pick **＋ New group…** to create a group; **Manage groups** deletes one (its links move to a group you choose).
-- **Edit** → tap any tile to change it, move it to another group, or delete it.
-  On a laptop you can also drag a tile onto a group in the sidebar. **Done** to leave edit mode.
+The bottom of the sidebar has three tools (icons only on a phone):
 
-Saving commits `links.json` (and the icon, if you chose one) straight to this repo through the GitHub API,
-so the normal deploy publishes it everywhere in about a minute.
+- **Add Link**: quick form with name, URL, optional icon image, and group (or **＋ New group…**).
+- **Manage Groups & Links**: a two-pane editor. Left: groups (add, select). Right: the group's
+  name and links. Rename, reorder (↑ ↓), move a link to another group, change its icon, delete.
+  Changes are staged until **Save Changes**, which writes them as one commit; **Discard** undoes them.
+  If another device saved in the meantime, it says so instead of overwriting.
+- **GitHub Connection**: connect or disconnect this browser, see the account and repo, and test the
+  connection. The dot is green when connected.
 
-**One-time setup per device:** the first Save asks for a GitHub token. Create a
+Saving commits `links.json` (and any icons) straight to this repo through the GitHub API, so the
+normal deploy publishes it everywhere in about a minute.
+
+**One-time setup per device:** create a
 [fine-grained token](https://github.com/settings/personal-access-tokens/new) with
-*Only select repositories → Personal-Browser-Dashboard* and *Contents: Read and write*, then paste it in.
-It's kept only in that browser's storage. "GitHub connection…" in the form replaces or forgets it.
+*Only select repositories → Personal-Browser-Dashboard* and *Contents: Read and write*, and paste it into
+GitHub Connection. It's kept only in that browser's storage.
 
 ## Add a link by hand
 

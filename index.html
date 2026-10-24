@@ -18,67 +18,124 @@
   <nav id="sidebar" aria-label="Sections">
     <div id="groups"></div>
     <div class="actions">
-      <button type="button" id="add-btn" aria-label="Add Link">＋<span class="wide"> Add Link</span></button>
-      <button type="button" id="edit-btn" aria-pressed="false">Edit</button>
+      <button type="button" class="nav-btn accent" id="add-btn" aria-label="Add Link">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="wide">Add Link</span>
+      </button>
+      <button type="button" class="nav-btn" id="manage-btn" aria-label="Manage Groups &amp; Links">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="wide">Manage Groups &amp; Links</span>
+      </button>
+      <button type="button" class="nav-btn" id="github-btn" aria-label="GitHub Connection">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="fill"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.53-1.33-1.29-1.69-1.29-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.71 1.26 3.37.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.17 1.18a11 11 0 0 1 5.77 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.19 1.84 1.19 3.1 0 4.42-2.69 5.39-5.25 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5Z"/></svg><span class="wide">GitHub Connection</span><span class="status-dot" id="gh-dot"></span>
+      </button>
     </div>
   </nav>
   <main id="sections"></main>
 
+  <!-- Quick add -->
   <dialog id="link-dialog">
-    <form id="link-form" novalidate>
-      <h2 id="link-title">Add link</h2>
-
-      <div class="icon-row">
-        <span class="icon-wrap"><span class="icon" id="icon-preview"></span></span>
-        <div>
-          <label class="file-btn">Choose icon… <input type="file" id="f-icon" accept="image/*"></label>
-          <button type="button" id="clear-icon" class="linklike" hidden>Remove</button>
-          <p class="hint">Optional. Leave it and the site's own icon is fetched automatically.</p>
+    <form id="link-form" class="sheet" novalidate>
+      <header class="sheet-head">
+        <h2>Add Link</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="sheet-body">
+        <div class="icon-row">
+          <span class="icon-wrap"><span class="icon" id="icon-preview"></span></span>
+          <div>
+            <label class="file-btn">Choose icon… <input type="file" id="f-icon" accept="image/*"></label>
+            <button type="button" id="clear-icon" class="linklike" hidden>Remove</button>
+            <p class="hint">Optional. Leave it and the site's own icon is fetched automatically.</p>
+          </div>
         </div>
+        <label>Name <input id="f-name" required maxlength="40" autocomplete="off"></label>
+        <label>URL <input id="f-url" required inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
+        <label>Group <select id="f-group"></select></label>
+        <label id="new-group-row" hidden>New group name <input id="f-new-group" maxlength="30" autocomplete="off"></label>
+        <p class="status" id="link-status" role="status"></p>
       </div>
-
-      <label>Name <input id="f-name" required maxlength="40" autocomplete="off"></label>
-      <label>URL <input id="f-url" required inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
-      <label>Group <select id="f-group"></select></label>
-      <label id="new-group-row" hidden>New group name <input id="f-new-group" maxlength="30" autocomplete="off"></label>
-
-      <details id="manage-groups">
-        <summary>Manage groups</summary>
-        <ul id="group-list"></ul>
-      </details>
-
-      <p class="status" id="link-status" role="status"></p>
-
-      <div class="buttons">
-        <button type="button" id="delete-link" class="danger" hidden>Delete link</button>
+      <footer class="sheet-foot">
         <span class="spacer"></span>
-        <button type="button" data-close>Cancel</button>
-        <button type="submit" class="primary" id="save-link">Save</button>
-      </div>
-      <button type="button" id="token-btn" class="linklike small">GitHub connection…</button>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="save-link">Add Link</button>
+      </footer>
     </form>
   </dialog>
 
-  <dialog id="token-dialog">
-    <form id="token-form" novalidate>
-      <h2>Connect GitHub</h2>
-      <p>Saving writes to <code>links.json</code> in your repo, so this browser needs a GitHub token. It's stored only in this browser. Do this once per device.</p>
-      <ol>
-        <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">a new fine-grained token</a>.</li>
-        <li><b>Repository access</b> → Only select repositories → <b>Personal-Browser-Dashboard</b>.</li>
-        <li><b>Permissions</b> → Repository → <b>Contents: Read and write</b>.</li>
-        <li>Generate, copy, and paste it here.</li>
-      </ol>
-      <label>Token <input id="f-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
-      <p class="status" id="token-status" role="status"></p>
-      <div class="buttons">
-        <button type="button" id="token-forget" class="danger">Forget token</button>
-        <span class="spacer"></span>
-        <button type="button" data-close>Cancel</button>
-        <button type="submit" class="primary">Connect</button>
+  <!-- Manage groups & links -->
+  <dialog id="manager" class="wide-dialog">
+    <div class="sheet">
+      <header class="sheet-head">
+        <h2>Manage Groups &amp; Links</h2>
+        <button type="button" class="icon-btn" id="mgr-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="mgr-body">
+        <aside class="mgr-groups">
+          <div class="pane-head">
+            <span class="pane-title">Groups</span>
+            <button type="button" class="icon-btn" id="mgr-add-group" title="New group" aria-label="New group"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+          <ul id="mgr-group-list"></ul>
+        </aside>
+        <section class="mgr-links">
+          <div id="mgr-group-pane"></div>
+        </section>
       </div>
-    </form>
+      <footer class="sheet-foot">
+        <span class="status" id="mgr-status" role="status"></span>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="mgr-discard">Discard</button>
+        <button type="button" class="btn primary" id="mgr-save">Save Changes</button>
+      </footer>
+    </div>
+    <input type="file" id="mgr-file" accept="image/*" hidden>
   </dialog>
+
+  <!-- GitHub connection -->
+  <dialog id="github-dialog">
+    <div class="sheet">
+      <header class="sheet-head">
+        <h2>GitHub Connection</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="sheet-body">
+        <div class="gh-card">
+          <span class="status-dot big" id="gh-card-dot"></span>
+          <div>
+            <strong id="gh-state">Not connected</strong>
+            <p class="hint" id="gh-detail">Connect to add and manage links from this browser.</p>
+          </div>
+        </div>
+
+        <dl class="meta" id="gh-meta">
+          <dt>Repository</dt><dd><a id="gh-repo" target="_blank" rel="noreferrer"></a></dd>
+          <dt>Branch</dt><dd id="gh-branch"></dd>
+          <dt>Account</dt><dd id="gh-account">—</dd>
+          <dt>Token</dt><dd id="gh-token-mask">—</dd>
+        </dl>
+
+        <ul class="checks" id="gh-checks" hidden></ul>
+
+        <form id="gh-form" novalidate>
+          <ol class="steps">
+            <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noreferrer">a new fine-grained token</a>.</li>
+            <li><b>Repository access</b> → Only select repositories → <b>Personal-Browser-Dashboard</b>.</li>
+            <li><b>Permissions</b> → Repository → <b>Contents: Read and write</b>.</li>
+            <li>Generate, copy, and paste it below. It's stored only in this browser.</li>
+          </ol>
+          <label>Personal access token <input id="f-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+          <p class="status" id="gh-status" role="status"></p>
+        </form>
+      </div>
+      <footer class="sheet-foot">
+        <button type="button" class="btn danger" id="gh-disconnect">Disconnect</button>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="gh-test">Test Connection</button>
+        <button type="submit" form="gh-form" class="btn primary" id="gh-connect">Connect</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <div id="toast" popover="manual" role="status" aria-live="polite"></div>
 
   <script src="app.js?v=dev" defer></script>
 </body>
