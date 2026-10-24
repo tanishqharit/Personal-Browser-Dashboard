@@ -115,8 +115,6 @@ main {
   padding: 16px 16px 48px;
 }
 
-section + section { margin-top: 32px; }
-h2 { font-size: 20px; font-weight: 700; margin-bottom: 16px; }
 .empty { color: var(--muted); grid-column: 1 / -1; }
 
 .grid {

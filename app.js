@@ -142,8 +142,7 @@ function render() {
   $("#sections").replaceChildren(...data.sections.map((sec) => {
     const section = document.createElement("section");
     section.dataset.slug = slug(sec.name);
-    const h = document.createElement("h2");
-    h.textContent = sec.name;
+    section.setAttribute("aria-label", sec.name); // the sidebar shows the name, so no visible heading
     const grid = document.createElement("div");
     grid.className = "grid";
     grid.append(...sec.links.map(linkTile));
@@ -153,7 +152,7 @@ function render() {
       empty.textContent = "No links yet.";
       grid.append(empty);
     }
-    section.append(h, grid);
+    section.append(grid);
     return section;
   }));
 
