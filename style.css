@@ -115,6 +115,11 @@ main {
   padding: 16px 16px 48px;
 }
 
+/* Greeting + date/time above the icons */
+.hello { margin: 12px 0 32px; }
+.hello h1 { font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.hello p { margin-top: 4px; color: var(--muted); font-size: 15px; font-variant-numeric: tabular-nums; }
+
 .empty { color: var(--muted); grid-column: 1 / -1; }
 
 .grid {
@@ -447,7 +452,9 @@ dialog a { color: var(--accent); }
   .nav-btn { padding: 8px 12px; font-size: 14px; }
   .nav-btn .wide { display: inline; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   #github-btn .status-dot { position: static; margin-left: auto; }
-  main { padding: 48px 40px; }
+  main { padding: 56px 40px 48px; }
+  .hello { margin: 0 0 48px; }
+  .hello h1 { font-size: 36px; }
   .grid { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 28px 12px; }
   .label { max-width: 100px; font-size: 13px; }
 }

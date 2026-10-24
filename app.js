@@ -972,7 +972,41 @@ for (const dialog of [linkDialog, githubDialog]) {
   });
 }
 
+/* ---------- Greeting + clock ---------- */
+
+const NAME = "Tanishq";
+
+function greetingFor(hour) {
+  if (hour < 5) return "Good night";
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  if (hour < 22) return "Good evening";
+  return "Good night";
+}
+
+// Uses the device's own clock and time zone.
+function tick() {
+  const now = new Date();
+  $("#greeting").textContent = `${greetingFor(now.getHours())}, ${NAME}`;
+  const date = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const time = now.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+  $("#now").textContent = `${date} · ${time}`;
+}
+
+// Fire right as each minute starts, so the clock never lags behind the device.
+let clockTimer;
+function startClock() {
+  clearTimeout(clockTimer);
+  tick();
+  const now = new Date();
+  clockTimer = setTimeout(startClock, 60_000 - (now.getSeconds() * 1000 + now.getMilliseconds()) + 50);
+}
+// Phones pause timers in background tabs; catch up when the tab is visible again.
+document.addEventListener("visibilitychange", () => { if (!document.hidden) startClock(); });
+
 /* ---------- Start ---------- */
+
+startClock();
 
 updateDot();
 
