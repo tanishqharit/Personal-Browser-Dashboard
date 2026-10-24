@@ -25,7 +25,7 @@
       ]
     },
     {
-      "name": "AI",
+      "name": "AI Tools & Chat Bots",
       "links": [
         {"name": "Claude", "url": "https://claude.ai"},
         {"name": "ChatGPT", "url": "https://chatgpt.com"}
