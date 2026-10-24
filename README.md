@@ -11,7 +11,7 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 | `icons/` | Custom icon images (PNG/SVG/WebP). |
 | `index.html` | Page skeleton. |
 | `style.css` | Look and layout. Colors are at the top. |
-| `app.js` | Reads `links.json` and draws the page. Search and folders. |
+| `app.js` | Reads `links.json` and draws the page, sidebar and folders. |
 | `manifest.webmanifest` | Lets you "Add to Home Screen" as an app. |
 | `.github/workflows/deploy.yml` | Checks `links.json` is valid, then publishes to Pages. |
 
@@ -47,11 +47,13 @@ Icon order of preference: your `icon` file → the site's favicon (auto-fetched)
 
 Add another object to `sections` with its own `name` and `links`.
 
-## Shortcuts
+## Sidebar
 
-- `/` focuses search (laptop)
-- Type to filter, `Enter` opens the first match
-- `Esc` closes a folder
+Every section in `links.json` gets a sidebar entry automatically, plus **All** at the top.
+On a phone the sidebar becomes a sideways-scrolling strip at the top.
+Each section has its own URL, so you can bookmark one directly, e.g. `…/Personal-Browser-Dashboard/#finance`.
+
+`Esc` closes a folder.
 
 ## Run locally
 

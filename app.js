@@ -43,7 +43,6 @@ function linkTile(link) {
   a.className = "tile";
   a.href = link.url;
   a.rel = "noreferrer";
-  a.dataset.search = link.name.toLowerCase();
   a.append(iconEl(link), labelEl(link.name));
   return a;
 }
@@ -52,7 +51,6 @@ function folderTile(folder) {
   const btn = document.createElement("button");
   btn.className = "tile";
   btn.type = "button";
-  btn.dataset.search = [folder.name, ...folder.folder.map((l) => l.name)].join(" ").toLowerCase();
 
   const preview = document.createElement("span");
   preview.className = "icon folder";
@@ -81,10 +79,15 @@ $("#folder").addEventListener("click", (e) => {
   if (e.target === e.currentTarget) e.currentTarget.close();
 });
 
+// "Finance" → "finance", used in the URL hash (#finance).
+const slug = (name) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
 function render(data) {
   document.title = data.title || "Dashboard";
-  const out = data.sections.map((sec) => {
+
+  const sections = data.sections.map((sec) => {
     const section = document.createElement("section");
+    section.dataset.slug = slug(sec.name);
     const h = document.createElement("h2");
     h.textContent = sec.name;
     const grid = document.createElement("div");
@@ -93,43 +96,41 @@ function render(data) {
     section.append(h, grid);
     return section;
   });
-  $("#sections").replaceChildren(...out);
+  $("#sections").replaceChildren(...sections);
+
+  const navItems = [{ name: "All", slug: "all" }, ...data.sections.map((s) => ({ name: s.name, slug: slug(s.name) }))];
+  $("#sidebar").replaceChildren(...navItems.map((item) => {
+    const a = document.createElement("a");
+    a.href = `#${item.slug}`;
+    a.textContent = item.name;
+    a.dataset.slug = item.slug;
+    return a;
+  }));
+
+  show();
 }
 
-// Search: filters tiles as you type; Enter opens the first match.
-$("#search").addEventListener("input", (e) => {
-  const q = e.target.value.trim().toLowerCase();
-  for (const section of document.querySelectorAll("#sections section")) {
-    let any = false;
-    for (const tile of section.querySelectorAll(".tile")) {
-      const hit = tile.dataset.search.includes(q);
-      tile.classList.toggle("hidden", !hit);
-      any ||= hit;
+// Shows the section named in the URL hash; no hash (or unknown) → All.
+function show() {
+  const want = location.hash.slice(1);
+  const known = [...document.querySelectorAll("#sections section")].some((s) => s.dataset.slug === want);
+  const current = known ? want : "all";
+
+  for (const s of document.querySelectorAll("#sections section")) {
+    s.classList.toggle("hidden", current !== "all" && s.dataset.slug !== current);
+  }
+  for (const a of document.querySelectorAll("#sidebar a")) {
+    const on = a.dataset.slug === current;
+    a.classList.toggle("active", on);
+    if (on) {
+      a.setAttribute("aria-current", "page");
+      a.scrollIntoView({ block: "nearest", inline: "nearest" });
+    } else {
+      a.removeAttribute("aria-current");
     }
-    section.classList.toggle("hidden", !any);
   }
-});
-$("#search").addEventListener("keydown", (e) => {
-  if (e.key !== "Enter") return;
-  const first = document.querySelector("#sections .tile:not(.hidden)");
-  if (first) first.click();
-});
-
-// "/" focuses search from anywhere (laptop shortcut).
-document.addEventListener("keydown", (e) => {
-  if (e.key === "/" && document.activeElement !== $("#search")) {
-    e.preventDefault();
-    $("#search").focus();
-  }
-});
-
-function tick() {
-  $("#clock").textContent = new Date().toLocaleString([], {
-    weekday: "long", month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
-  });
 }
-tick();
-setInterval(tick, 30_000);
+window.addEventListener("hashchange", show);
 
 fetch("links.json", { cache: "no-cache" })
   .then((r) => r.json())
