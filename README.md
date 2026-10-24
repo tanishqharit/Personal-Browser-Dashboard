@@ -66,7 +66,7 @@ Add another object to `sections` with its own `name` and `links`.
 
 ## Sidebar
 
-Every section in `links.json` gets a sidebar entry automatically, plus **All** at the top.
+Every group in `links.json` gets a sidebar entry automatically; the page opens on the first one.
 On a phone the sidebar becomes a sideways-scrolling strip at the top.
 Each section has its own URL, so you can bookmark one directly, e.g. `…/Personal-Browser-Dashboard/#finance`.
 

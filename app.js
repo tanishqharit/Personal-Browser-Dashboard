@@ -157,7 +157,7 @@ function render() {
     return section;
   }));
 
-  const navItems = [{ name: "All", slug: "all" }, ...data.sections.map((s) => ({ name: s.name, slug: slug(s.name) }))];
+  const navItems = data.sections.map((s) => ({ name: s.name, slug: slug(s.name) }));
   $("#groups").replaceChildren(...navItems.map((item) => {
     const a = document.createElement("a");
     a.href = `#${item.slug}`;
@@ -169,14 +169,14 @@ function render() {
   show();
 }
 
-// Shows the section named in the URL hash; no hash (or unknown) → All.
+// Shows the group named in the URL hash; no hash (or unknown) → the first group.
 function show() {
   const want = location.hash.slice(1);
   const known = data.sections.some((s) => slug(s.name) === want);
-  const current = known ? want : "all";
+  const current = known ? want : slug(data.sections[0]?.name || "");
 
   for (const s of document.querySelectorAll("#sections section")) {
-    s.classList.toggle("hidden", current !== "all" && s.dataset.slug !== current);
+    s.classList.toggle("hidden", s.dataset.slug !== current);
   }
   for (const a of document.querySelectorAll("#groups a")) {
     const on = a.dataset.slug === current;
@@ -434,7 +434,6 @@ $("#link-form").addEventListener("submit", async (e) => {
   if (!name || !slug(name).replace(/-/g, "")) return void (status.textContent = "Give it a name.");
   if (!url) return void (status.textContent = "That URL doesn't look right. Example: chase.com");
   if (!groupName) return void (status.textContent = "Name the new group.");
-  if (slug(groupName) === "all") return void (status.textContent = "“All” is reserved. Pick another group name.");
   if (findLink(data, slug(name))) return void (status.textContent = `There's already a link called “${name}”.`);
 
   const icon = pickedIcon && { path: `icons/${slug(name)}.png`, base64: pickedIcon.split(",")[1] };
@@ -747,7 +746,6 @@ function validate(work) {
     g.name = g.name.trim();
     const gs = slug(g.name);
     if (!gs.replace(/-/g, "")) return fail("Every group needs a name.");
-    if (gs === "all") return fail("“All” is reserved. Rename that group.");
     if (groupSlugs.has(gs)) return fail(`Two groups are called “${g.name}”.`);
     groupSlugs.add(gs);
     for (const l of g.links) {
