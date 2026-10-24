@@ -412,6 +412,85 @@ dialog a { color: var(--accent); }
 
 .steps { padding-left: 20px; display: grid; gap: 4px; color: var(--muted); font-size: 14px; margin-bottom: 14px; }
 
+/* ---------- Wallpaper ---------- */
+
+#backdrop { position: fixed; inset: 0; z-index: -1; background: #000; }
+#backdrop img { width: 100%; height: 100%; object-fit: cover; }
+/* Soft dark gradient so white text stays readable on any photo */
+#backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgb(0 0 0 / .55) 0%, rgb(0 0 0 / .3) 45%, rgb(0 0 0 / .5) 100%);
+}
+
+/* Over a photo the page always uses light text, in light mode too. Dialogs keep their own colors. */
+body.has-wallpaper { background: #000; }
+body.has-wallpaper :is(.hello, #sidebar, main) {
+  --text: #fff;
+  --muted: rgb(255 255 255 / .72);
+  --tile: rgb(255 255 255 / .12);
+  --tile-hover: rgb(255 255 255 / .2);
+  color: var(--text);
+}
+body.has-wallpaper #sidebar { background: transparent; }
+body.has-wallpaper :is(.hello, .label) { text-shadow: 0 1px 3px rgb(0 0 0 / .5); }
+body.has-wallpaper .nav-btn.accent { color: #fff; }
+
+/* Wallpaper dialog */
+.wp-preview {
+  aspect-ratio: 16 / 9;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--pane);
+  color: var(--muted);
+  font-size: 14px;
+}
+.wp-preview img { width: 100%; height: 100%; object-fit: cover; }
+
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 9px;
+  background: var(--field);
+}
+.segmented button {
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: none;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.segmented button[aria-selected="true"] { background: var(--sheet); color: var(--text); box-shadow: 0 1px 3px rgb(0 0 0 / .25); }
+.segmented button:focus-visible { outline: 2px solid var(--ring); }
+
+.dropzone {
+  display: grid !important;
+  justify-items: center;
+  gap: 4px !important;
+  padding: 22px 16px;
+  border: 1.5px dashed var(--line);
+  border-radius: 10px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.dropzone:hover, .dropzone.over { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.dropzone input { display: none; }
+.dropzone svg { width: 22px; height: 22px; color: var(--muted); margin-bottom: 4px; }
+.dropzone strong { color: var(--text); font-size: 14px; }
+.dropzone span { font-weight: 400; font-size: 12px; }
+
+.field-row { display: flex; gap: 8px; }
+.field-row input { flex: 1; min-width: 0; }
+
 /* ---------- Toast ---------- */
 
 #toast {
@@ -473,6 +552,8 @@ dialog a { color: var(--accent); }
 /* ---------- Phone: manager panes stack ---------- */
 
 @media (max-width: 719px) {
+  /* The sticky strip scrolls over icons, so give it frosted glass on a wallpaper. */
+  body.has-wallpaper #sidebar { background: rgb(0 0 0 / .35); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); }
   dialog.wide-dialog { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; border: 0; }
   .mgr-body { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
   .mgr-groups { border-right: 0; border-bottom: 1px solid var(--line); overflow: hidden; }

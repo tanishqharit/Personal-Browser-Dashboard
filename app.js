@@ -166,6 +166,7 @@ function render() {
   }));
 
   show();
+  applyWallpaper();
 }
 
 // Shows the group named in the URL hash; no hash (or unknown) → the first group.
@@ -204,7 +205,9 @@ function findLink(d, linkSlug) {
 
 // Same layout as the hand-written file: one link per line.
 function serialize(d) {
-  const lines = ["{", `  "title": ${JSON.stringify(d.title)},`, '  "sections": ['];
+  const lines = ["{", `  "title": ${JSON.stringify(d.title)},`];
+  if (d.wallpaper) lines.push(`  "wallpaper": ${JSON.stringify(d.wallpaper)},`);
+  lines.push('  "sections": [');
   d.sections.forEach((s, si) => {
     lines.push("    {", `      "name": ${JSON.stringify(s.name)},`, '      "links": [');
     s.links.forEach((l, li) => {
@@ -271,6 +274,14 @@ async function putFile(path, base64, message) {
     method: "PUT",
     body: JSON.stringify({ message, content: base64, branch: BRANCH, ...(existing ? { sha: existing.sha } : {}) }),
   });
+}
+
+// Best effort: a leftover file is harmless, so failures are ignored.
+async function deleteFile(path, message) {
+  try {
+    const existing = await gh(`${path}?ref=${BRANCH}`);
+    if (existing) await gh(path, { method: "DELETE", body: JSON.stringify({ message, sha: existing.sha, branch: BRANCH }) });
+  } catch {}
 }
 
 const putLinks = (json, sha, message) => gh("links.json", {
@@ -960,13 +971,216 @@ $("#gh-disconnect").addEventListener("click", () => {
   toast("Disconnected");
 });
 
+/* ---------- Wallpaper ---------- */
+// links.json "wallpaper" is either a file in the repo (wallpapers/…jpg, uploaded from a device)
+// or an image URL on another site. Stored in the repo, so it's the same on every device.
+
+const wallpaperDialog = $("#wallpaper-dialog");
+let freshWallpaper = null; // { path, url }: a file uploaded in this tab, shown before Pages redeploys
+let pendingWallpaper = null; // { kind: "file", dataUrl } or { kind: "url", url }
+
+function wallpaperSources(src) {
+  if (freshWallpaper?.path === src) return [freshWallpaper.url];
+  return src.startsWith("http") ? [src] : [src, RAW + src];
+}
+
+function applyWallpaper() {
+  const src = data.wallpaper;
+  const box = $("#backdrop"), img = $("#wallpaper-img");
+  if (!src) {
+    box.hidden = true;
+    document.body.classList.remove("has-wallpaper");
+    img.removeAttribute("src");
+    img.dataset.src = "";
+    return;
+  }
+  if (img.dataset.src === src) return; // already showing it
+  img.dataset.src = src;
+  const sources = wallpaperSources(src);
+  img.onload = () => {
+    box.hidden = false;
+    document.body.classList.add("has-wallpaper");
+  };
+  img.onerror = () => {
+    sources.shift();
+    if (sources.length) img.src = sources[0];
+    else { box.hidden = true; document.body.classList.remove("has-wallpaper"); }
+  };
+  img.src = sources[0];
+}
+
+// Big photos are scaled down to 2560px on the long side and saved as JPEG.
+async function wallpaperFromFile(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    img.src = url;
+    await img.decode();
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h) throw new Error("no size");
+    const scale = Math.min(1, 2560 / Math.max(w, h));
+    const c = document.createElement("canvas");
+    c.width = Math.round(w * scale);
+    c.height = Math.round(h * scale);
+    const ctx = c.getContext("2d");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL("image/jpeg", 0.82);
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Checks that a URL really is an image the browser can show.
+function loadImage(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.referrerPolicy = "no-referrer";
+    const timer = setTimeout(() => reject(new Error("timeout")), 15000);
+    img.onload = () => { clearTimeout(timer); resolve(); };
+    img.onerror = () => { clearTimeout(timer); reject(new Error("not an image")); };
+    img.src = src;
+  });
+}
+
+function showPreview(src) {
+  const box = $("#wp-preview");
+  box.replaceChildren();
+  box.style.backgroundImage = "";
+  if (src) {
+    const img = new Image();
+    img.alt = "";
+    img.referrerPolicy = "no-referrer";
+    img.src = src;
+    box.append(img);
+  } else {
+    const empty = document.createElement("span");
+    empty.textContent = "No wallpaper";
+    box.append(empty);
+  }
+}
+
+function setTab(tab) {
+  const device = tab === "device";
+  $("#wp-tab-device").setAttribute("aria-selected", device);
+  $("#wp-tab-url").setAttribute("aria-selected", !device);
+  $("#wp-device-pane").hidden = !device;
+  $("#wp-url-pane").hidden = device;
+  if (!device) $("#wp-url").focus();
+}
+
+function openWallpaper() {
+  pendingWallpaper = null;
+  $("#wp-file").value = "";
+  $("#wp-url").value = "";
+  $("#wp-status").textContent = "";
+  $("#wp-save").disabled = true;
+  $("#wp-remove").hidden = !data.wallpaper;
+  showPreview(data.wallpaper ? wallpaperSources(data.wallpaper)[0] : null);
+  setTab("device");
+  wallpaperDialog.showModal();
+}
+
+async function pickWallpaperFile(file) {
+  if (!file) return;
+  if (!file.type.startsWith("image/")) return void ($("#wp-status").textContent = "That file isn't an image.");
+  $("#wp-status").textContent = "Preparing…";
+  try {
+    const dataUrl = await wallpaperFromFile(file);
+    pendingWallpaper = { kind: "file", dataUrl };
+    showPreview(dataUrl);
+    $("#wp-status").textContent = `Ready · ${Math.round((dataUrl.length * 3) / 4 / 1024)} KB`;
+    $("#wp-save").disabled = false;
+  } catch {
+    $("#wp-status").textContent = "Couldn't read that image. Try a JPG or PNG.";
+  }
+}
+
+async function previewWallpaperUrl() {
+  const url = normalizeUrl($("#wp-url").value);
+  if (!url) return void ($("#wp-status").textContent = "That URL doesn't look right.");
+  $("#wp-status").textContent = "Loading…";
+  $("#wp-save").disabled = true;
+  try {
+    await loadImage(url);
+    pendingWallpaper = { kind: "url", url };
+    showPreview(url);
+    $("#wp-status").textContent = "Ready";
+    $("#wp-save").disabled = false;
+  } catch {
+    pendingWallpaper = null;
+    $("#wp-status").textContent = "Couldn't load an image from that URL. Use a direct link to the image file.";
+  }
+}
+
+$("#wp-tab-device").addEventListener("click", () => setTab("device"));
+$("#wp-tab-url").addEventListener("click", () => setTab("url"));
+$("#wp-file").addEventListener("change", (e) => pickWallpaperFile(e.target.files[0]));
+const drop = $("#wp-drop");
+drop.addEventListener("dragover", (e) => { e.preventDefault(); drop.classList.add("over"); });
+drop.addEventListener("dragleave", () => drop.classList.remove("over"));
+drop.addEventListener("drop", (e) => {
+  e.preventDefault();
+  drop.classList.remove("over");
+  pickWallpaperFile(e.dataTransfer.files[0]);
+});
+$("#wp-load").addEventListener("click", previewWallpaperUrl);
+$("#wp-url").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); previewWallpaperUrl(); } });
+
+$("#wp-save").addEventListener("click", async () => {
+  if (!pendingWallpaper) return;
+  const status = $("#wp-status");
+  const old = data.wallpaper;
+  setDisabled(wallpaperDialog, true);
+  status.textContent = "Saving…";
+  try {
+    requireConnection();
+    let value;
+    if (pendingWallpaper.kind === "file") {
+      value = `wallpapers/wallpaper-${Date.now()}.jpg`;
+      await putFile(value, pendingWallpaper.dataUrl.split(",")[1], "Upload wallpaper");
+      freshWallpaper = { path: value, url: pendingWallpaper.dataUrl };
+    } else {
+      value = pendingWallpaper.url;
+    }
+    await save((d) => { d.wallpaper = value; }, "Change wallpaper");
+    if (old && !old.startsWith("http") && old !== value) deleteFile(old, "Remove old wallpaper");
+    wallpaperDialog.close();
+    toast("Wallpaper set");
+  } catch (err) {
+    status.textContent = err.message;
+  } finally {
+    setDisabled(wallpaperDialog, false);
+    $("#wp-save").disabled = !pendingWallpaper;
+  }
+});
+
+$("#wp-remove").addEventListener("click", async () => {
+  if (!confirm("Remove the wallpaper on all devices?")) return;
+  const old = data.wallpaper;
+  setDisabled(wallpaperDialog, true);
+  $("#wp-status").textContent = "Removing…";
+  try {
+    requireConnection();
+    await save((d) => { delete d.wallpaper; }, "Remove wallpaper");
+    if (old && !old.startsWith("http")) deleteFile(old, "Remove old wallpaper");
+    wallpaperDialog.close();
+    toast("Wallpaper removed");
+  } catch (err) {
+    $("#wp-status").textContent = err.message;
+  } finally {
+    setDisabled(wallpaperDialog, false);
+  }
+});
+
 /* ---------- Sidebar, dialogs ---------- */
 
 $("#add-btn").addEventListener("click", openAddLink);
 $("#manage-btn").addEventListener("click", openManager);
+$("#wallpaper-btn").addEventListener("click", openWallpaper);
 $("#github-btn").addEventListener("click", () => openGithub());
 
-for (const dialog of [linkDialog, githubDialog]) {
+for (const dialog of [linkDialog, githubDialog, wallpaperDialog]) {
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog || e.target.closest("[data-close]")) dialog.close();
   });
