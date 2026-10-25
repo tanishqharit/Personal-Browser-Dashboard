@@ -10,6 +10,9 @@ const API = `https://api.github.com/repos/${REPO}/contents/`;
 // Files committed seconds ago are on raw.githubusercontent before Pages redeploys.
 const RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/`;
 const NEW_GROUP = "__new__";
+// Replaced with the commit id on deploy (see deploy.yml), so browsers fetch changed
+// icons and wallpapers right away instead of reusing a cached copy for ~10 minutes.
+const VERSION = "?v=dev";
 
 let data = null;
 const freshIcons = new Map(); // slug → data URL of icons uploaded in this tab
@@ -76,7 +79,7 @@ function iconBox(link) {
   // Dark mode: the iOS-style dark version from scripts/dark_icons.py, if it exists yet.
   const darkPath = path.replace(/^icons\//, "icons/dark/");
   const local = darkMode.matches && darkPath !== path ? [darkPath, path] : [path];
-  const sources = freshIcons.has(s) ? [freshIcons.get(s)] : [...local, ...local.map((p) => RAW + p)];
+  const sources = freshIcons.has(s) ? [freshIcons.get(s)] : [...local, ...local.map((p) => RAW + p)].map((u) => u + VERSION);
 
   const img = new Image();
   img.alt = "";
@@ -987,7 +990,7 @@ let pendingWallpaper = null; // { kind: "file", dataUrl } or { kind: "url", url 
 
 function wallpaperSources(src) {
   if (freshWallpaper?.path === src) return [freshWallpaper.url];
-  return src.startsWith("http") ? [src] : [src, RAW + src];
+  return src.startsWith("http") ? [src] : [src + VERSION, RAW + src + VERSION];
 }
 
 function applyWallpaper() {
