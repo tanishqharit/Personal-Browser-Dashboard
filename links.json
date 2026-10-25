@@ -23,7 +23,7 @@
         {"name": "Link", "url": "https://link.com"},
         {"name": "Experian", "url": "https://www.experian.com"},
         {"name": "Rocket Money", "url": "https://www.rocketmoney.com"},
-        {"name": "YONO SBI", "url": "https://www.onlinesbi.sbi"},
+        {"name": "YONO SBI", "url": "https://www.onlinesbi.sbi", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/SBI_YONO_Logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Yono_SBI_logo_(2017%E2%80%932025).svg"]},
         {"name": "SimpleFIN Bridge", "url": "https://beta-bridge.simplefin.org"}
       ]
     },
@@ -34,7 +34,7 @@
         {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
         {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
         {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]},
-        {"name": "Google Account", "url": "https://myaccount.google.com"},
+        {"name": "Google Account", "url": "https://myaccount.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Favicon_2025.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Google_%22G%22_logo.svg"]},
         {"name": "Microsoft Account", "url": "https://account.microsoft.com"}
       ]
     },
@@ -70,7 +70,7 @@
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
         {"name": "Walmart", "url": "https://www.walmart.com"},
         {"name": "UNiDAYS", "url": "https://www.myunidays.com"},
-        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com"}
+        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]}
       ]
     },
     {
@@ -108,7 +108,7 @@
         {"name": "Netflix", "url": "https://www.netflix.com"},
         {"name": "IMDb", "url": "https://www.imdb.com"},
         {"name": "AMC Theatres", "url": "https://www.amctheatres.com"},
-        {"name": "Regal", "url": "https://www.regmovies.com"}
+        {"name": "Regal", "url": "https://www.regmovies.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Regal_Cinemas_logo_2018.svg"]}
       ]
     },
     {
