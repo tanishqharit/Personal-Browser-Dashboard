@@ -8,7 +8,8 @@
         {"name": "iCloud", "url": "https://www.icloud.com"},
         {"name": "Gmail", "url": "https://mail.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png"]},
         {"name": "YouTube", "url": "https://www.youtube.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/YouTube_full-color_icon_(2017).svg"]},
-        {"name": "YouTube Music", "url": "https://music.youtube.com"}
+        {"name": "YouTube Music", "url": "https://music.youtube.com"},
+        {"name": "Chrome Web Store", "url": "https://chromewebstore.google.com/"}
       ]
     },
     {
@@ -53,12 +54,6 @@
       "links": [
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
         {"name": "Walmart", "url": "https://www.walmart.com"}
-      ]
-    },
-    {
-      "name": "Tools",
-      "links": [
-        {"name": "Chrome Web Store", "url": "https://chromewebstore.google.com/"}
       ]
     }
   ]
