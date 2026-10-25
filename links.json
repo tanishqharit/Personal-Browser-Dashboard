@@ -25,10 +25,12 @@
       ]
     },
     {
-      "name": "AI Tools & Chat Bots",
+      "name": "Personal",
       "links": [
-        {"name": "Claude", "url": "https://claude.ai"},
-        {"name": "ChatGPT", "url": "https://chatgpt.com"}
+        {"name": "GitHub", "url": "https://github.com"},
+        {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
+        {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
+        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]}
       ]
     },
     {
@@ -40,19 +42,17 @@
       ]
     },
     {
+      "name": "AI Tools & Chat Bots",
+      "links": [
+        {"name": "Claude", "url": "https://claude.ai"},
+        {"name": "ChatGPT", "url": "https://chatgpt.com"}
+      ]
+    },
+    {
       "name": "Shopping",
       "links": [
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
         {"name": "Walmart", "url": "https://www.walmart.com"}
-      ]
-    },
-    {
-      "name": "Personal",
-      "links": [
-        {"name": "GitHub", "url": "https://github.com"},
-        {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
-        {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
-        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]}
       ]
     }
   ]
