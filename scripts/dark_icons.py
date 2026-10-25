@@ -28,7 +28,7 @@ TOP, BOTTOM = np.array([40, 40, 43.0]), np.array([20, 20, 22.0])  # graphite, li
 
 def light_neutral(rgb):
     lo, hi = rgb.min(axis=2), rgb.max(axis=2)
-    return (lo >= 200) & (hi - lo <= 30)
+    return (lo >= 222) & (hi - lo <= 24)
 
 
 def grow(mask, allowed=None, steps=1):
@@ -118,7 +118,12 @@ def darken(img):
         fill = edge & ~known & (count[..., 0] > 0)
         color = np.where(fill[..., None], total / np.maximum(count, 1), color)
         known |= fill
-    color = np.where(known[..., None], color, white)  # isolated specks: treat as background
+    # Thin strokes (small text) have no solid core to borrow from: un-mix them from white
+    # directly instead, so they don't get mistaken for background.
+    ink = ((255 - rgb).max(axis=2) / 255)[..., None]
+    own = np.clip((rgb - 255 * (1 - ink)) / np.where(ink > 0, ink, 1), 0, 255)
+    thin = edge & ~known & (ink[..., 0] > 0.15)
+    color = np.where(thin[..., None], own, np.where(known[..., None], color, white))
 
     # How much white is mixed into each edge pixel: project it on the line logo-colour -> white.
     span = white - color

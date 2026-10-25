@@ -116,7 +116,8 @@ def load(url):
         if url.lower().split("?")[0].endswith(".svg") or head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in data[:2000].lower()):
             if cairosvg is None:
                 return None
-            png = cairosvg.svg2png(bytestring=data, output_width=SIZE * 2, output_height=SIZE * 2)
+            # Width only, so wide wordmarks keep their shape and plenty of resolution.
+            png = cairosvg.svg2png(bytestring=data, output_width=SIZE * 4)
             return Image.open(io.BytesIO(png)).convert("RGBA"), 10_000
         img = Image.open(io.BytesIO(data))
         if img.format == "ICO":
@@ -125,7 +126,8 @@ def load(url):
         img.load()
         img = img.convert("RGBA")
         return img, min(img.size)
-    except Exception:
+    except Exception as e:
+        print(f"    fail   {url}  ({type(e).__name__}: {str(e)[:80]})")
         return None
 
 
@@ -166,17 +168,15 @@ def make_tile(img):
 
     if bbox:
         img = img.crop(bbox)
-        w, h = img.size
-        s = max(w, h)
-        sq = Image.new("RGBA", (s, s), (0, 0, 0, 0))
-        sq.alpha_composite(img, ((s - w) // 2, (s - h) // 2))
-        img = sq
 
+    # Square-ish logos fill ~62% of the tile; wide wordmarks (YONO, Bath & Body Works)
+    # get ~82% of the width so the text stays readable.
+    w, h = img.size
+    target = 0.82 if w / h > 1.8 else 0.62
+    k = SIZE * target / max(w, h)
+    logo = img.resize((max(1, round(w * k)), max(1, round(h * k))), Image.LANCZOS)
     tile = Image.new("RGBA", (SIZE, SIZE), bg)
-    inner = int(SIZE * 0.62)
-    logo = img.resize((inner, inner), Image.LANCZOS)
-    off = (SIZE - inner) // 2
-    tile.alpha_composite(logo, (off, off))
+    tile.alpha_composite(logo, ((SIZE - logo.width) // 2, (SIZE - logo.height) // 2))
     return tile
 
 
@@ -198,6 +198,8 @@ def main():
 
         print(f"{link['name']}  ({link['url']})")
         best = None
+        # Wikimedia can also render an SVG to PNG itself (?width=), in case cairosvg can't.
+        given = [v for u in given for v in ([u, u + "?width=1024"] if "Special:FilePath/" in u and u.lower().endswith(".svg") else [u])]
         for c in given + site_candidates(link["url"]):
             got = load(c)
             if got is None:
