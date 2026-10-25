@@ -44,8 +44,7 @@ function svg(paths) {
   return el;
 }
 const ICON = {
-  up: '<path d="m6 15 6-6 6 6"/>',
-  down: '<path d="m6 9 6 6 6-6"/>',
+  grip: '<path d="M5 8h14M5 12h14M5 16h14"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
 };
@@ -459,9 +458,10 @@ function renderManager() {
 function renderGroupList() {
   $("#mgr-group-list").replaceChildren(...mgr.work.sections.map((g, i) => {
     const li = document.createElement("li");
+    li.className = "group-row" + (i === mgr.selected ? " selected" : "");
     const b = document.createElement("button");
     b.type = "button";
-    b.className = "group-item" + (i === mgr.selected ? " selected" : "");
+    b.className = "group-item";
     const name = document.createElement("span");
     name.textContent = g.name || "Untitled group";
     const count = document.createElement("span");
@@ -469,10 +469,18 @@ function renderGroupList() {
     count.textContent = g.links.length;
     b.append(name, count);
     b.onclick = () => { mgr.selected = i; mgr.confirming = false; renderManager(); };
-    li.append(b);
+    li.append(b, gripButton(`Reorder ${g.name || "group"}`));
     return li;
   }));
 }
+
+makeSortable($("#mgr-group-list"), "#mgr-group-list", (from, to) => {
+  const s = mgr.work.sections;
+  const selected = s[mgr.selected];
+  s.splice(to, 0, ...s.splice(from, 1));
+  mgr.selected = s.indexOf(selected);
+  renderManager();
+});
 
 function renderGroupPane() {
   const pane = $("#mgr-group-pane");
@@ -486,7 +494,7 @@ function renderGroupPane() {
     return;
   }
 
-  // Header: editable group name + reorder / delete
+  // Header: editable group name + delete
   const head = document.createElement("div");
   head.className = "pane-head";
   const title = document.createElement("input");
@@ -497,11 +505,7 @@ function renderGroupPane() {
   title.oninput = () => { g.name = title.value; renderGroupList(); touched(); };
   const tools = document.createElement("div");
   tools.className = "tools";
-  const up = iconButton("up", "Move group up", () => moveGroup(-1));
-  const down = iconButton("down", "Move group down", () => moveGroup(1));
-  up.disabled = mgr.selected === 0;
-  down.disabled = mgr.selected === groups.length - 1;
-  tools.append(up, down, iconButton("trash", "Delete group", () => { mgr.confirming = true; renderGroupPane(); }, "danger"));
+  tools.append(iconButton("trash", "Delete group", () => { mgr.confirming = true; renderGroupPane(); }, "danger"));
   head.append(title, tools);
 
   const parts = [head];
@@ -510,6 +514,10 @@ function renderGroupPane() {
   const list = document.createElement("ul");
   list.className = "link-list";
   list.append(...g.links.map((l, i) => linkRow(g, l, i)));
+  makeSortable(list, "#mgr-group-pane .link-list", (from, to) => {
+    g.links.splice(to, 0, ...g.links.splice(from, 1));
+    renderManager();
+  });
   if (!g.links.length) {
     const li = document.createElement("li");
     li.className = "empty-row";
@@ -620,33 +628,147 @@ function linkRow(g, link, i) {
 
   const tools = document.createElement("div");
   tools.className = "tools";
-  const up = iconButton("up", "Move up", () => moveLink(g, i, -1));
-  const down = iconButton("down", "Move down", () => moveLink(g, i, 1));
-  up.disabled = i === 0;
-  down.disabled = i === g.links.length - 1;
-  tools.append(up, down, iconButton("trash", "Delete link", () => {
-    g.links.splice(i, 1);
+  tools.append(iconButton("trash", "Delete link", () => {
+    g.links.splice(g.links.indexOf(link), 1);
     mgr.icons.delete(link);
     renderManager();
-  }, "danger"));
+  }, "danger"), gripButton(`Reorder ${link.name || "link"}`));
 
   li.append(iconBtn, fields, move, tools);
   return li;
 }
 
-function moveGroup(dir) {
-  const s = mgr.work.sections, i = mgr.selected, j = i + dir;
-  if (j < 0 || j >= s.length) return;
-  [s[i], s[j]] = [s[j], s[i]];
-  mgr.selected = j;
-  renderManager();
+function gripButton(label) {
+  const b = document.createElement("button");
+  b.type = "button";
+  b.className = "grip";
+  b.title = "Drag to reorder";
+  b.setAttribute("aria-label", `${label} (drag, or use arrow keys)`);
+  b.append(svg(ICON.grip));
+  return b;
 }
 
-function moveLink(g, i, dir) {
-  const j = i + dir;
-  if (j < 0 || j >= g.links.length) return;
-  [g.links[i], g.links[j]] = [g.links[j], g.links[i]];
-  renderManager();
+/* Drag to reorder, iPhone style: grab an item's ≡ handle and it lifts and follows the
+   pointer (mouse, trackpad or finger) while its neighbours slide out of the way.
+   Built on pointer events because HTML drag-and-drop doesn't work on touch screens.
+   The handle also works from the keyboard with the arrow keys.
+   onMove(from, to) updates the data; `selector` finds the list again after a re-render. */
+function makeSortable(list, selector, onMove) {
+  const items = (l = list) => [...l.children].filter((el) => el.querySelector(".grip"));
+  const isRow = () => {
+    const cs = getComputedStyle(list);
+    return cs.display.includes("flex") && cs.flexDirection.startsWith("row");
+  };
+
+  list.addEventListener("pointerdown", (e) => {
+    const grip = e.target.closest(".grip");
+    if (!grip || e.button > 0) return;
+    e.preventDefault();
+    const item = grip.closest("li");
+    const horizontal = isRow();
+    const axis = horizontal ? "X" : "Y";
+    const pos = (ev) => (horizontal ? ev.clientX : ev.clientY);
+    const offset = (el) => (horizontal ? el.offsetLeft : el.offsetTop);
+    const size = (el) => (horizontal ? el.offsetWidth : el.offsetHeight);
+    const from = items().indexOf(item);
+    let start = pos(e);
+    let last = e; // latest pointer position, for auto-scroll
+
+    // Nearest scrollable box along the drag axis (the panel, or the phone's group strip).
+    let scroller = list;
+    while (scroller && !(horizontal ? scroller.scrollWidth > scroller.clientWidth && /auto|scroll/.test(getComputedStyle(scroller).overflowX)
+                                    : scroller.scrollHeight > scroller.clientHeight && /auto|scroll/.test(getComputedStyle(scroller).overflowY))) {
+      scroller = scroller.parentElement;
+    }
+
+    // Animate a neighbour from where it was to its new slot.
+    const slide = (el, delta) => {
+      el.style.transition = "none";
+      el.style.transform = `translate${axis}(${delta}px)`;
+      el.getBoundingClientRect();
+      el.style.transition = "transform .18s ease";
+      el.style.transform = "";
+    };
+
+    const move = (ev) => {
+      last = ev;
+      const all = items();
+      const i = all.indexOf(item);
+      const next = all[i + 1], prev = all[i - 1];
+      const d = pos(ev) - start;
+      // Swap once the item has travelled past the middle of its neighbour. The neighbour is
+      // what moves in the DOM: moving the dragged item itself would drop its pointer capture.
+      for (const [other, passed, place] of [[next, d > (next ? size(next) / 2 : Infinity), "before"], [prev, d < (prev ? -size(prev) / 2 : -Infinity), "after"]]) {
+        if (!other || !passed) continue;
+        const itemWas = offset(item), otherWas = offset(other);
+        item[place](other);
+        start += offset(item) - itemWas;
+        slide(other, otherWas - offset(other));
+        break;
+      }
+      item.style.transform = `translate${axis}(${pos(ev) - start}px)`;
+    };
+
+    // Holding the item near the edge of a long list scrolls it, like iOS.
+    let raf = 0;
+    const autoScroll = () => {
+      if (scroller) {
+        const r = scroller.getBoundingClientRect();
+        const lo = horizontal ? r.left : r.top, hi = horizontal ? r.right : r.bottom;
+        const p = pos(last), edge = 48;
+        const speed = p < lo + edge ? -Math.ceil((lo + edge - p) / 4) : p > hi - edge ? Math.ceil((p - (hi - edge)) / 4) : 0;
+        if (speed) {
+          const prop = horizontal ? "scrollLeft" : "scrollTop";
+          const was = scroller[prop];
+          scroller[prop] += speed;
+          start -= scroller[prop] - was; // the list moved under the pointer
+          move(last);
+        }
+      }
+      raf = requestAnimationFrame(autoScroll);
+    };
+
+    let ended = false;
+    const end = () => {
+      if (ended) return;
+      ended = true;
+      cancelAnimationFrame(raf);
+      grip.removeEventListener("pointermove", move);
+      grip.removeEventListener("pointerup", end);
+      grip.removeEventListener("pointercancel", end);
+      grip.removeEventListener("lostpointercapture", end);
+      item.style.transition = "transform .15s ease";
+      item.style.transform = "";
+      const to = items().indexOf(item);
+      setTimeout(() => {
+        item.classList.remove("dragging");
+        item.style.transition = "";
+        if (to !== from) onMove(from, to);
+      }, 160);
+    };
+
+    item.classList.add("dragging");
+    grip.setPointerCapture(e.pointerId);
+    grip.addEventListener("pointermove", move);
+    grip.addEventListener("pointerup", end);
+    grip.addEventListener("pointercancel", end);
+    grip.addEventListener("lostpointercapture", end);
+    raf = requestAnimationFrame(autoScroll);
+  });
+
+  list.addEventListener("keydown", (e) => {
+    const grip = e.target.closest(".grip");
+    if (!grip) return;
+    const step = { ArrowUp: -1, ArrowLeft: -1, ArrowDown: 1, ArrowRight: 1 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const from = items().indexOf(grip.closest("li"));
+    const to = from + step;
+    if (to < 0 || to >= items().length) return;
+    onMove(from, to);
+    const fresh = document.querySelector(selector);
+    if (fresh) items(fresh)[to]?.querySelector(".grip").focus();
+  });
 }
 
 $("#mgr-add-group").addEventListener("click", () => {

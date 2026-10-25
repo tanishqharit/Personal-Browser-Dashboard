@@ -21,7 +21,7 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 The bottom of the sidebar has three tools (icons only on a phone):
 
 - **Manage Groups & Links**: a two-pane editor, and where you add links (pick a group → **＋ Add link**). Left: groups (add, select). Right: the group's
-  name and links. Rename, reorder (↑ ↓), move a link to another group, change its icon, delete.
+  name and links. Rename, drag the ≡ handle to reorder (mouse, trackpad or touch; arrow keys work too), move a link to another group, change its icon, delete.
   Changes are staged until **Save Changes**, which writes them as one commit; **Discard** undoes them.
   If another device saved in the meantime, it says so instead of overwriting.
 - **Wallpaper**: upload from your device (resized to 2560px JPEG, saved in `wallpapers/`) or use an
