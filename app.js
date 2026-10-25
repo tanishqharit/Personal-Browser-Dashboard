@@ -64,8 +64,14 @@ function iconButton(name, label, onClick, extra = "") {
 
 /* ---------- Drawing the dashboard ---------- */
 
+// Icon style: "auto" follows the device's light/dark setting; "light" / "dark" force one.
+// A viewing preference, so it's saved per browser rather than in the repo.
 const darkMode = matchMedia("(prefers-color-scheme: dark)");
 darkMode.addEventListener("change", () => { if (data) render(); });
+const ICON_MODES = ["auto", "light", "dark"];
+let iconMode = (() => { try { return localStorage.getItem("icon-theme"); } catch { return null; } })();
+if (!ICON_MODES.includes(iconMode)) iconMode = "auto";
+const useDarkIcons = () => iconMode === "dark" || (iconMode === "auto" && darkMode.matches);
 
 // Icon priority: icon uploaded this session → local "icon" path or icons/<slug>.png
 // → same file on raw.githubusercontent (just committed) → colored letter tile.
@@ -78,7 +84,7 @@ function iconBox(link) {
   const path = isLocalPath(link.icon) ? link.icon : `icons/${s}.png`;
   // Dark mode: the iOS-style dark version from scripts/dark_icons.py, if it exists yet.
   const darkPath = path.replace(/^icons\//, "icons/dark/");
-  const local = darkMode.matches && darkPath !== path ? [darkPath, path] : [path];
+  const local = useDarkIcons() && darkPath !== path ? [darkPath, path] : [path];
   const sources = freshIcons.has(s) ? [freshIcons.get(s)] : [...local, ...local.map((p) => RAW + p)].map((u) => u + VERSION);
 
   const img = new Image();
@@ -1187,6 +1193,30 @@ $("#wp-remove").addEventListener("click", async () => {
 $("#add-btn").addEventListener("click", openAddLink);
 $("#manage-btn").addEventListener("click", openManager);
 $("#wallpaper-btn").addEventListener("click", openWallpaper);
+
+const MODE_ICON = {
+  auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>',
+  light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  dark: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/>',
+};
+const MODE_NAME = { auto: "Auto", light: "Light", dark: "Dark" };
+
+function updateIconsBtn() {
+  $("#icons-btn-svg").innerHTML = MODE_ICON[iconMode];
+  $("#icons-btn-label").textContent = `Icons: ${MODE_NAME[iconMode]}`;
+  const label = `Icon style: ${MODE_NAME[iconMode]}${iconMode === "auto" ? " (follows device)" : ""}. Click to change.`;
+  $("#icons-btn").setAttribute("aria-label", label);
+  $("#icons-btn").title = label;
+}
+
+$("#icons-btn").addEventListener("click", () => {
+  iconMode = ICON_MODES[(ICON_MODES.indexOf(iconMode) + 1) % ICON_MODES.length];
+  try { localStorage.setItem("icon-theme", iconMode); } catch {}
+  updateIconsBtn();
+  if (data) render();
+  toast(iconMode === "auto" ? "Icons follow your device" : `${MODE_NAME[iconMode]} icons`);
+});
+updateIconsBtn();
 $("#github-btn").addEventListener("click", () => openGithub());
 
 for (const dialog of [linkDialog, githubDialog, wallpaperDialog]) {
