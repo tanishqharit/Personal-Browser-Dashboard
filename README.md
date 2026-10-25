@@ -12,7 +12,7 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 | `scripts/fetch_icons.py` | Downloads missing icons during deploy. |
 | `index.html` | Page skeleton. |
 | `style.css` | Look and layout. Colors are at the top. |
-| `app.js` | Draws the page; Add Link, Manage and GitHub Connection panels save to GitHub. |
+| `app.js` | Draws the page; the Manage, Wallpaper and GitHub Connection panels save to GitHub. |
 | `manifest.webmanifest` | Lets you "Add to Home Screen" as an app. |
 | `.github/workflows/deploy.yml` | Checks `links.json`, fetches missing icons, publishes to Pages. |
 
@@ -20,8 +20,7 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 
 The bottom of the sidebar has three tools (icons only on a phone):
 
-- **Add Link**: quick form with name, URL, optional icon image, and group (or **＋ New group…**).
-- **Manage Groups & Links**: a two-pane editor. Left: groups (add, select). Right: the group's
+- **Manage Groups & Links**: a two-pane editor, and where you add links (pick a group → **＋ Add link**). Left: groups (add, select). Right: the group's
   name and links. Rename, reorder (↑ ↓), move a link to another group, change its icon, delete.
   Changes are staged until **Save Changes**, which writes them as one commit; **Discard** undoes them.
   If another device saved in the meantime, it says so instead of overwriting.

@@ -9,7 +9,6 @@ const BRANCH = "main";
 const API = `https://api.github.com/repos/${REPO}/contents/`;
 // Files committed seconds ago are on raw.githubusercontent before Pages redeploys.
 const RAW = `https://raw.githubusercontent.com/${REPO}/${BRANCH}/`;
-const NEW_GROUP = "__new__";
 // Replaced with the commit id on deploy (see deploy.yml), so browsers fetch changed
 // icons and wallpapers right away instead of reusing a cached copy for ~10 minutes.
 const VERSION = "?v=dev";
@@ -393,92 +392,6 @@ function toast(message) {
 function setDisabled(root, on) {
   for (const el of root.querySelectorAll("button, input, select")) el.disabled = on;
 }
-
-/* ---------- Add Link ---------- */
-
-const linkDialog = $("#link-dialog");
-let pickedIcon = null; // data URL of a newly chosen icon
-
-function openAddLink() {
-  pickedIcon = null;
-  $("#link-form").reset();
-  $("#clear-icon").hidden = true;
-  $("#link-status").textContent = "";
-
-  const current = findGroup(data, location.hash.slice(1));
-  const sel = $("#f-group");
-  sel.replaceChildren(
-    ...data.sections.map((s) => new Option(s.name, s.name, false, s === current)),
-    new Option("＋ New group…", NEW_GROUP, false, !data.sections.length),
-  );
-  $("#new-group-row").hidden = sel.value !== NEW_GROUP;
-  updatePreview();
-  linkDialog.showModal();
-  $("#f-name").focus();
-}
-
-function updatePreview() {
-  const box = pickedIcon ? imageBox(pickedIcon) : letterBox($("#f-name").value.trim() || "?");
-  box.id = "icon-preview";
-  $("#icon-preview").replaceWith(box);
-}
-
-$("#f-name").addEventListener("input", () => { if (!pickedIcon) updatePreview(); });
-$("#f-group").addEventListener("change", (e) => {
-  $("#new-group-row").hidden = e.target.value !== NEW_GROUP;
-  if (e.target.value === NEW_GROUP) $("#f-new-group").focus();
-});
-$("#f-icon").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  try {
-    pickedIcon = await iconFromFile(file);
-    $("#clear-icon").hidden = false;
-    updatePreview();
-  } catch {
-    $("#link-status").textContent = "Couldn't read that image. Try a PNG, JPG or SVG.";
-  }
-});
-$("#clear-icon").addEventListener("click", () => {
-  pickedIcon = null;
-  $("#f-icon").value = "";
-  $("#clear-icon").hidden = true;
-  updatePreview();
-});
-
-$("#link-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const status = $("#link-status");
-  const name = $("#f-name").value.trim();
-  const url = normalizeUrl($("#f-url").value);
-  const newGroup = $("#f-group").value === NEW_GROUP;
-  const groupName = newGroup ? $("#f-new-group").value.trim() : $("#f-group").value;
-
-  if (!name || !slug(name).replace(/-/g, "")) return void (status.textContent = "Give it a name.");
-  if (!url) return void (status.textContent = "That URL doesn't look right. Example: chase.com");
-  if (!groupName) return void (status.textContent = "Name the new group.");
-  if (findLink(data, slug(name))) return void (status.textContent = `There's already a link called “${name}”.`);
-
-  const icon = pickedIcon && { path: `icons/${slug(name)}.png`, base64: pickedIcon.split(",")[1] };
-  setDisabled(linkDialog, true);
-  status.textContent = "Saving…";
-  try {
-    await save((d) => {
-      let g = findGroup(d, slug(groupName));
-      if (!g) d.sections.push((g = { name: groupName, links: [] }));
-      g.links.push({ name, url });
-    }, `Add ${name}`, icon);
-    if (pickedIcon) freshIcons.set(slug(name), pickedIcon);
-    render();
-    location.hash = slug(groupName);
-    linkDialog.close();
-    toast(`Added ${name}`);
-  } catch (err) {
-    status.textContent = err.message;
-  } finally {
-    setDisabled(linkDialog, false);
-  }
-});
 
 /* ---------- Manage Groups & Links ---------- */
 // Edits a working copy; nothing is written until "Save Changes", which makes one commit.
@@ -1188,7 +1101,6 @@ $("#wp-remove").addEventListener("click", async () => {
 
 /* ---------- Sidebar, dialogs ---------- */
 
-$("#add-btn").addEventListener("click", openAddLink);
 $("#manage-btn").addEventListener("click", openManager);
 $("#wallpaper-btn").addEventListener("click", openWallpaper);
 
@@ -1216,7 +1128,7 @@ $("#icons-btn").addEventListener("click", () => {
 updateIconsBtn();
 $("#github-btn").addEventListener("click", () => openGithub());
 
-for (const dialog of [linkDialog, githubDialog, wallpaperDialog]) {
+for (const dialog of [githubDialog, wallpaperDialog]) {
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog || e.target.closest("[data-close]")) dialog.close();
   });

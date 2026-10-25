@@ -23,9 +23,6 @@
   <nav id="sidebar" aria-label="Sections">
     <div id="groups"></div>
     <div class="actions">
-      <button type="button" class="nav-btn accent" id="add-btn" aria-label="Add Link">
-        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span class="wide">Add Link</span>
-      </button>
       <button type="button" class="nav-btn" id="manage-btn" aria-label="Manage Groups &amp; Links">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg><span class="wide">Manage Groups &amp; Links</span>
       </button>
@@ -43,36 +40,6 @@
   <main>
     <div id="sections"></div>
   </main>
-
-  <!-- Quick add -->
-  <dialog id="link-dialog">
-    <form id="link-form" class="sheet" novalidate>
-      <header class="sheet-head">
-        <h2>Add Link</h2>
-        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-      </header>
-      <div class="sheet-body">
-        <div class="icon-row">
-          <span class="icon-wrap"><span class="icon" id="icon-preview"></span></span>
-          <div>
-            <label class="file-btn">Choose icon… <input type="file" id="f-icon" accept="image/*"></label>
-            <button type="button" id="clear-icon" class="linklike" hidden>Remove</button>
-            <p class="hint">Optional. Leave it and the site's own icon is fetched automatically.</p>
-          </div>
-        </div>
-        <label>Name <input id="f-name" required maxlength="40" autocomplete="off"></label>
-        <label>URL <input id="f-url" required inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="https://"></label>
-        <label>Group <select id="f-group"></select></label>
-        <label id="new-group-row" hidden>New group name <input id="f-new-group" maxlength="30" autocomplete="off"></label>
-        <p class="status" id="link-status" role="status"></p>
-      </div>
-      <footer class="sheet-foot">
-        <span class="spacer"></span>
-        <button type="button" class="btn" data-close>Cancel</button>
-        <button type="submit" class="btn primary" id="save-link">Add Link</button>
-      </footer>
-    </form>
-  </dialog>
 
   <!-- Manage groups & links -->
   <dialog id="manager" class="wide-dialog">
