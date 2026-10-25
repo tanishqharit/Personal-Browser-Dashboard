@@ -64,14 +64,12 @@ function iconButton(name, label, onClick, extra = "") {
 
 /* ---------- Drawing the dashboard ---------- */
 
-// Icon style: "auto" follows the device's light/dark setting; "light" / "dark" force one.
+// Icon style: "light" (original icons) or "dark" (graphite versions). Dark by default.
 // A viewing preference, so it's saved per browser rather than in the repo.
-const darkMode = matchMedia("(prefers-color-scheme: dark)");
-darkMode.addEventListener("change", () => { if (data) render(); });
-const ICON_MODES = ["auto", "light", "dark"];
+const ICON_MODES = ["light", "dark"];
 let iconMode = (() => { try { return localStorage.getItem("icon-theme"); } catch { return null; } })();
-if (!ICON_MODES.includes(iconMode)) iconMode = "auto";
-const useDarkIcons = () => iconMode === "dark" || (iconMode === "auto" && darkMode.matches);
+if (!ICON_MODES.includes(iconMode)) iconMode = "dark";
+const useDarkIcons = () => iconMode === "dark";
 
 // Icon priority: icon uploaded this session → local "icon" path or icons/<slug>.png
 // → same file on raw.githubusercontent (just committed) → colored letter tile.
@@ -1195,16 +1193,15 @@ $("#manage-btn").addEventListener("click", openManager);
 $("#wallpaper-btn").addEventListener("click", openWallpaper);
 
 const MODE_ICON = {
-  auto: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16Z" fill="currentColor" stroke="none"/>',
   light: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   dark: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5Z"/>',
 };
-const MODE_NAME = { auto: "Auto", light: "Light", dark: "Dark" };
+const MODE_NAME = { light: "Light", dark: "Dark" };
 
 function updateIconsBtn() {
   $("#icons-btn-svg").innerHTML = MODE_ICON[iconMode];
   $("#icons-btn-label").textContent = `Icons: ${MODE_NAME[iconMode]}`;
-  const label = `Icon style: ${MODE_NAME[iconMode]}${iconMode === "auto" ? " (follows device)" : ""}. Click to change.`;
+  const label = `Icon style: ${MODE_NAME[iconMode]}. Click for ${MODE_NAME[iconMode === "dark" ? "light" : "dark"]}.`;
   $("#icons-btn").setAttribute("aria-label", label);
   $("#icons-btn").title = label;
 }
@@ -1214,7 +1211,7 @@ $("#icons-btn").addEventListener("click", () => {
   try { localStorage.setItem("icon-theme", iconMode); } catch {}
   updateIconsBtn();
   if (data) render();
-  toast(iconMode === "auto" ? "Icons follow your device" : `${MODE_NAME[iconMode]} icons`);
+  toast(`${MODE_NAME[iconMode]} icons`);
 });
 updateIconsBtn();
 $("#github-btn").addEventListener("click", () => openGithub());
