@@ -58,7 +58,7 @@
     {
       "name": "Tools",
       "links": [
-        {"name": "Web Store", "url": "https://chromewebstore.google.com/"}
+        {"name": "Chrome Web Store", "url": "https://chromewebstore.google.com/"}
       ]
     }
   ]
