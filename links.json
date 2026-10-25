@@ -21,7 +21,10 @@
         {"name": "Splitwise", "url": "https://secure.splitwise.com"},
         {"name": "Paytm", "url": "https://paytm.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Paytm_Logo_(standalone).svg"]},
         {"name": "Link", "url": "https://link.com"},
-        {"name": "Experian", "url": "https://www.experian.com"}
+        {"name": "Experian", "url": "https://www.experian.com"},
+        {"name": "Rocket Money", "url": "https://www.rocketmoney.com"},
+        {"name": "YONO SBI", "url": "https://www.onlinesbi.sbi"},
+        {"name": "SimpleFIN Bridge", "url": "https://beta-bridge.simplefin.org"}
       ]
     },
     {
@@ -30,7 +33,9 @@
         {"name": "GitHub", "url": "https://github.com"},
         {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
         {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
-        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]}
+        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]},
+        {"name": "Google Account", "url": "https://myaccount.google.com"},
+        {"name": "Microsoft Account", "url": "https://account.microsoft.com"}
       ]
     },
     {
@@ -38,21 +43,87 @@
       "links": [
         {"name": "Reddit", "url": "https://www.reddit.com"},
         {"name": "X", "url": "https://x.com"},
-        {"name": "Discord", "url": "https://discord.com/app"}
+        {"name": "Discord", "url": "https://discord.com/app"},
+        {"name": "Instagram", "url": "https://www.instagram.com"},
+        {"name": "Facebook", "url": "https://www.facebook.com"}
       ]
     },
     {
       "name": "AI Tools & Chat Bots",
       "links": [
         {"name": "Claude", "url": "https://claude.ai"},
-        {"name": "ChatGPT", "url": "https://chatgpt.com"}
+        {"name": "ChatGPT", "url": "https://chatgpt.com"},
+        {"name": "Gemini", "url": "https://gemini.google.com"},
+        {"name": "Gemini Notebook", "url": "https://notebooklm.google.com"},
+        {"name": "Perplexity", "url": "https://www.perplexity.ai"},
+        {"name": "Muse", "url": "https://muse.ai"},
+        {"name": "Kimi", "url": "https://www.kimi.com"},
+        {"name": "Komo", "url": "https://komo.ai"},
+        {"name": "Botpress", "url": "https://botpress.com"},
+        {"name": "Zapier", "url": "https://zapier.com"},
+        {"name": "Apify", "url": "https://apify.com"}
       ]
     },
     {
       "name": "Shopping",
       "links": [
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
-        {"name": "Walmart", "url": "https://www.walmart.com"}
+        {"name": "Walmart", "url": "https://www.walmart.com"},
+        {"name": "UNiDAYS", "url": "https://www.myunidays.com"},
+        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com"}
+      ]
+    },
+    {
+      "name": "Fashion",
+      "links": [
+        {"name": "Nike", "url": "https://www.nike.com"},
+        {"name": "adidas", "url": "https://www.adidas.com"},
+        {"name": "On", "url": "https://www.on.com"},
+        {"name": "lululemon", "url": "https://shop.lululemon.com"},
+        {"name": "Under Armour", "url": "https://www.underarmour.com"},
+        {"name": "The North Face", "url": "https://www.thenorthface.com"},
+        {"name": "Columbia", "url": "https://www.columbia.com"},
+        {"name": "UNIQLO", "url": "https://www.uniqlo.com/us"},
+        {"name": "Zara", "url": "https://www.zara.com"},
+        {"name": "H&M", "url": "https://www2.hm.com/en_us"}
+      ]
+    },
+    {
+      "name": "Tech & Gaming",
+      "links": [
+        {"name": "Apple Store", "url": "https://www.apple.com/store"},
+        {"name": "Best Buy", "url": "https://www.bestbuy.com"},
+        {"name": "Samsung", "url": "https://www.samsung.com/us"},
+        {"name": "Sony", "url": "https://electronics.sony.com"},
+        {"name": "Anker", "url": "https://www.anker.com"},
+        {"name": "Razer", "url": "https://www.razer.com"},
+        {"name": "ROG", "url": "https://rog.asus.com"},
+        {"name": "PlayStation", "url": "https://www.playstation.com"},
+        {"name": "Xbox", "url": "https://www.xbox.com"}
+      ]
+    },
+    {
+      "name": "Movies & TV",
+      "links": [
+        {"name": "Netflix", "url": "https://www.netflix.com"},
+        {"name": "IMDb", "url": "https://www.imdb.com"},
+        {"name": "AMC Theatres", "url": "https://www.amctheatres.com"},
+        {"name": "Regal", "url": "https://www.regmovies.com"}
+      ]
+    },
+    {
+      "name": "Events & Tickets",
+      "links": [
+        {"name": "Ticketmaster", "url": "https://www.ticketmaster.com"},
+        {"name": "StubHub", "url": "https://www.stubhub.com"},
+        {"name": "SeatGeek", "url": "https://seatgeek.com"},
+        {"name": "TickPick", "url": "https://www.tickpick.com"},
+        {"name": "DICE", "url": "https://dice.fm"},
+        {"name": "Resident Advisor", "url": "https://ra.co"},
+        {"name": "Shotgun", "url": "https://shotgun.live"},
+        {"name": "Eventbrite", "url": "https://www.eventbrite.com"},
+        {"name": "Meetup", "url": "https://www.meetup.com"},
+        {"name": "Luma", "url": "https://luma.com"}
       ]
     }
   ]
