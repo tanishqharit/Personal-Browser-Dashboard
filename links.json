@@ -54,6 +54,12 @@
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
         {"name": "Walmart", "url": "https://www.walmart.com"}
       ]
+    },
+    {
+      "name": "Tools",
+      "links": [
+        {"name": "Store", "url": "https://chromewebstore.google.com/"}
+      ]
     }
   ]
 }
