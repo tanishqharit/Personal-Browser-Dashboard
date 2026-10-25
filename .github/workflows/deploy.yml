@@ -42,6 +42,13 @@ jobs:
           pip install --quiet pillow cairosvg
           python3 scripts/fetch_icons.py
 
+      # iOS-style dark versions of every icon (icons/dark/), used when the device is in dark mode.
+      - name: Make dark icons
+        continue-on-error: true
+        run: |
+          pip install --quiet numpy pillow
+          python3 scripts/dark_icons.py
+
       # Saves new icons into the repo so they are only downloaded once.
       # Pushes made with GITHUB_TOKEN don't start another run, so this can't loop.
       - name: Commit new icons
@@ -50,7 +57,7 @@ jobs:
           git add icons
           if git diff --cached --quiet; then echo "no new icons"; exit 0; fi
           git -c user.name="github-actions[bot]" -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-            commit -m "Add fetched icons"
+            commit -m "Update icons"
           git pull --rebase origin main && git push origin HEAD:main
 
       # Browsers cache files for ~10 min. Stamping each deploy's commit id onto

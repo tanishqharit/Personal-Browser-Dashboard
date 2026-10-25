@@ -61,7 +61,11 @@ then commits it back here. Each icon is only downloaded once.
 - **Different file name?** `"icon": "icons/whatever.png"` (a path, not a URL) is used as is.
 - No icon found → a colored letter tile.
 
-Tiles are cut to a macOS-style squircle by `icons/squircle.svg`, so don't round the corners yourself.
+Tiles are cut to the iPhone app-icon shape (continuous corners) by `icons/squircle.svg`, so don't round the corners yourself.
+
+**Dark mode:** when the device is in dark mode, icons come from `icons/dark/` — iOS-style versions made by
+`scripts/dark_icons.py` on every deploy (white background → graphite, logo colours kept, black logos turned light).
+Light mode uses the originals.
 
 ## Add a section
 

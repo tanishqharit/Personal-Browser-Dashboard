@@ -61,6 +61,9 @@ function iconButton(name, label, onClick, extra = "") {
 
 /* ---------- Drawing the dashboard ---------- */
 
+const darkMode = matchMedia("(prefers-color-scheme: dark)");
+darkMode.addEventListener("change", () => { if (data) render(); });
+
 // Icon priority: icon uploaded this session → local "icon" path or icons/<slug>.png
 // → same file on raw.githubusercontent (just committed) → colored letter tile.
 // (An "icon" URL in links.json is only a download source for scripts/fetch_icons.py.)
@@ -70,7 +73,10 @@ function iconBox(link) {
 
   const s = slug(link.name);
   const path = isLocalPath(link.icon) ? link.icon : `icons/${s}.png`;
-  const sources = freshIcons.has(s) ? [freshIcons.get(s)] : [path, RAW + path];
+  // Dark mode: the iOS-style dark version from scripts/dark_icons.py, if it exists yet.
+  const darkPath = path.replace(/^icons\//, "icons/dark/");
+  const local = darkMode.matches && darkPath !== path ? [darkPath, path] : [path];
+  const sources = freshIcons.has(s) ? [freshIcons.get(s)] : [...local, ...local.map((p) => RAW + p)];
 
   const img = new Image();
   img.alt = "";
