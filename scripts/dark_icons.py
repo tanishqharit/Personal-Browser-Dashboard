@@ -74,9 +74,26 @@ def darken(img):
     h, w, _ = rgb.shape
     white = np.array([255.0, 255, 255])
 
-    bg = flood_from_border(light_neutral(rgb))
+    light = light_neutral(rgb)
+    bg = flood_from_border(light)
     if bg.mean() < 0.10:
         return img  # full-colour tile or photo: nothing to darken
+
+    # Small enclosed white areas are holes in letters (the inside of "a", "o", "d"), not
+    # design details like YouTube's play triangle, so they become background too.
+    holes = light & ~bg
+    while holes.any():
+        y, x = np.argwhere(holes)[0]
+        part = np.zeros_like(holes)
+        part[y, x] = True
+        while True:
+            nxt = grow(part, holes)
+            if (nxt == part).all():
+                break
+            part = nxt
+        holes &= ~part
+        if part.sum() < 0.012 * h * w:
+            bg |= part
 
     t = np.linspace(0, 1, h)[:, None, None]
     dark = np.broadcast_to(TOP * (1 - t) + BOTTOM * t, rgb.shape)
