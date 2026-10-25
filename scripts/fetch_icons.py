@@ -25,6 +25,8 @@ import io
 import json
 import re
 import sys
+import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from html.parser import HTMLParser
@@ -42,6 +44,9 @@ ICONS = ROOT / "icons"
 SIZE = 256
 GOOD = 160
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
+# Wikimedia asks automated tools to identify themselves; a browser-like UA from a
+# server gets rate-limited (HTTP 429).
+BOT_UA = "PersonalDashboardIconFetcher/1.0 (https://github.com/tanishqharit/Personal-Browser-Dashboard)"
 
 
 def slug(name):
@@ -50,9 +55,16 @@ def slug(name):
 
 
 def get(url, timeout=15):
-    req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "*/*"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.geturl(), r.read(5_000_000)
+    ua = BOT_UA if "wikimedia.org" in url or "wikipedia.org" in url else UA
+    for attempt in range(3):
+        req = urllib.request.Request(url, headers={"User-Agent": ua, "Accept": "*/*"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return r.geturl(), r.read(5_000_000)
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 2:
+                raise
+            time.sleep(4 * (attempt + 1))  # rate-limited: wait and retry
 
 
 class IconLinks(HTMLParser):
@@ -113,7 +125,8 @@ def load(url):
     try:
         _, data = get(url)
         head = data[:500].lstrip().lower()
-        if url.lower().split("?")[0].endswith(".svg") or head.startswith(b"<svg") or (head.startswith(b"<?xml") and b"<svg" in data[:2000].lower()):
+        # Decide by content, not URL: "…logo.svg?width=1024" is a PNG rendered by Wikimedia.
+        if head.startswith(b"<svg") or (head.startswith((b"<?xml", b"<!--", b"<!doctype svg")) and b"<svg" in data[:4000].lower()):
             if cairosvg is None:
                 return None
             # Width only, so wide wordmarks keep their shape and plenty of resolution.
