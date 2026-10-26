@@ -19,9 +19,18 @@ Every push to `main` deploys it to GitHub Pages through GitHub Actions → https
 
 ## Edit from the page (any device)
 
+**Right-click a tile** (long-press on a phone) for quick actions, each saved straight away:
+**Open in New Tab**, **Copy Link**, **Edit…** (name, address, group, icon), **Re-download Icon**,
+**Rearrange Icons** and **Delete**.
+
+**Rearrange Icons** works like the iPhone home screen: the icons jiggle, drag them where you want
+(arrow keys work too), then **Done** saves the order. **Cancel** or Esc puts them back.
+
 The bottom of the sidebar has the tools (icons only on a phone):
 
-- **Manage Groups & Links**: a two-pane editor, and where you add links (pick a group → **＋ Add link**). Left: groups (add, select). Right: the group's
+- **Manage Groups & Links**: a two-pane editor, and where you add links (pick a group → **＋ Add link**).
+  Paste a link into the name box (or type the address) and the name fills itself in, guessed from the
+  address ("music.youtube.com" → "YouTube Music"; edit it if it's off), with a preview of the site's icon. Left: groups (add, select). Right: the group's
   emoji and name, and its links. Rename, drag the ≡ handle to reorder (mouse, trackpad or touch; arrow keys work too), move a link to another group, change its icon, delete.
   - **Tick several links** to move or delete them together.
   - **↻** on a link deletes its icon on save, so the next deploy downloads it again (fixes a bad or outdated icon).
@@ -34,6 +43,8 @@ The bottom of the sidebar has the tools (icons only on a phone):
 - **Wallpaper**: upload from your device (resized to 2560px JPEG, saved in `wallpapers/`) or use an
   image URL (stays hosted there). Saved in `links.json`, so it's the same on every device until you change
   or remove it. The repo is public, so the wallpaper is too.
+  **Dim** and **Blur** sliders adjust it (previewed on the page behind the dialog) and are saved with it.
+  Blur works on uploaded pictures and on image URLs whose site allows it (the panel says when one doesn't).
 - **Open**: whether links open in **this tab** (default, start-page style) or a **new tab**. Saved per browser.
 - **View**: switches between **Icons** (home-screen grid) and **List** (rows with name and address).
   Saved per browser.

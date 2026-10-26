@@ -90,6 +90,12 @@
       <div class="sheet-body">
         <div class="wp-preview" id="wp-preview"><span>No wallpaper</span></div>
 
+        <div class="wp-adjust" id="wp-adjust">
+          <label class="slider">Dim <input type="range" id="wp-dim" min="0" max="80" step="5"><output id="wp-dim-out" for="wp-dim"></output></label>
+          <label class="slider">Blur <input type="range" id="wp-blur" min="0" max="20" step="1"><output id="wp-blur-out" for="wp-blur"></output></label>
+          <p class="hint" id="wp-blur-note" hidden>This site doesn't allow its image to be blurred. Dim still works, or upload the image from your device.</p>
+        </div>
+
         <div class="segmented" role="tablist" aria-label="Source">
           <button type="button" role="tab" id="wp-tab-device" aria-selected="true">Upload from device</button>
           <button type="button" role="tab" id="wp-tab-url" aria-selected="false">Upload from URL</button>
@@ -207,6 +213,53 @@
       <p class="launch-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>⇧</kbd><kbd>↵</kbd> <span id="launch-alt">new tab</span></span></p>
     </div>
   </dialog>
+
+  <!-- Right-click (or long-press) a tile -->
+  <div id="tile-menu" class="menu" popover="manual" role="menu" aria-label="Link actions">
+    <button type="button" role="menuitem" data-act="open"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg><span id="menu-open-label">Open in New Tab</span></button>
+    <button type="button" role="menuitem" data-act="copy"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>Copy Link</button>
+    <hr>
+    <button type="button" role="menuitem" data-act="edit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4ZM13.5 6.5l4 4"/></svg>Edit…</button>
+    <button type="button" role="menuitem" data-act="refetch"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/></svg>Re-download Icon</button>
+    <button type="button" role="menuitem" data-act="arrange"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><path d="M17 14v6M14 17h6"/></svg>Rearrange Icons</button>
+    <hr>
+    <button type="button" role="menuitem" data-act="delete" class="danger"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>Delete</button>
+  </div>
+
+  <!-- Edit one link (from the tile menu) -->
+  <dialog id="edit-dialog">
+    <form class="sheet" id="edit-form" novalidate>
+      <header class="sheet-head">
+        <h2>Edit Link</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="sheet-body">
+        <div class="edit-top">
+          <button type="button" class="row-icon edit-icon" id="edit-icon" title="Change icon" aria-label="Change icon"></button>
+          <div class="edit-fields">
+            <label>Name <input id="edit-name" maxlength="40" autocomplete="off"></label>
+            <label>URL <input id="edit-url" inputmode="url" autocapitalize="off" autocomplete="off" spellcheck="false"></label>
+          </div>
+        </div>
+        <label>Group <select id="edit-group"></select></label>
+        <p class="hint">Click the icon to upload your own.</p>
+        <p class="status" id="edit-status" role="status"></p>
+      </div>
+      <footer class="sheet-foot">
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary" id="edit-save">Save</button>
+      </footer>
+    </form>
+    <input type="file" id="edit-file" accept="image/*" hidden>
+  </dialog>
+
+  <!-- Rearrange mode: icons jiggle, drag them, then Done -->
+  <div id="arrange-bar" class="arrange-bar" hidden>
+    <span>Drag icons to rearrange</span>
+    <button type="button" class="btn" id="arrange-cancel">Cancel</button>
+    <button type="button" class="btn primary" id="arrange-done">Done</button>
+  </div>
 
   <div id="toast" popover="manual" role="status" aria-live="polite"></div>
 

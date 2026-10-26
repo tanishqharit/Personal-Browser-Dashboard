@@ -36,6 +36,48 @@ function normalizeUrl(raw) {
   }
 }
 
+/* Smart add: a name guessed from the address ("music.youtube.com" → "YouTube Music").
+   Only a starting point; the name field stays editable. Web pages can't read another
+   site's real title (the browser blocks it), so this works from the address alone. */
+const KNOWN_NAMES = {
+  youtube: "YouTube", github: "GitHub", gitlab: "GitLab", paypal: "PayPal", linkedin: "LinkedIn", chatgpt: "ChatGPT",
+  openai: "OpenAI", imdb: "IMDb", tiktok: "TikTok", whatsapp: "WhatsApp", icloud: "iCloud", ebay: "eBay", hm: "H&M",
+  bestbuy: "Best Buy", stubhub: "StubHub", seatgeek: "SeatGeek", tickpick: "TickPick", doordash: "DoorDash",
+  ubereats: "Uber Eats", airbnb: "Airbnb", hbomax: "HBO Max", primevideo: "Prime Video", disneyplus: "Disney+",
+  duckduckgo: "DuckDuckGo", soundcloud: "SoundCloud", stackoverflow: "Stack Overflow", wellsfargo: "Wells Fargo",
+  bankofamerica: "Bank of America", americanexpress: "American Express", capitalone: "Capital One",
+  creditkarma: "Credit Karma", notebooklm: "NotebookLM", myunidays: "UNiDAYS", rocketmoney: "Rocket Money",
+  amctheatres: "AMC Theatres", regmovies: "Regal", playstation: "PlayStation", underarmour: "Under Armour",
+  thenorthface: "The North Face", bathandbodyworks: "Bath & Body Works", x: "X", ra: "Resident Advisor", dice: "DICE",
+};
+const GOOGLE_APPS = {
+  mail: "Gmail", drive: "Google Drive", docs: "Google Docs", sheets: "Google Sheets", slides: "Google Slides",
+  calendar: "Google Calendar", photos: "Google Photos", maps: "Google Maps", meet: "Google Meet", keep: "Google Keep",
+  news: "Google News", translate: "Google Translate", gemini: "Gemini", myaccount: "Google Account", notebooklm: "NotebookLM",
+};
+const PRODUCT_SUBDOMAINS = new Set(["music", "tv", "studio", "maps", "news", "cloud", "pay", "photos"]);
+
+function guessName(raw) {
+  const url = normalizeUrl(raw);
+  if (!url) return "";
+  const labels = new URL(url).hostname.toLowerCase().replace(/^www\d*\./, "").split(".");
+  // "bbc.co.uk": the name is the label before "co.uk", not "co"
+  const twoPart = labels.length > 2 && labels.at(-1).length === 2 && ["co", "com", "org", "net", "gov", "ac"].includes(labels.at(-2));
+  const at = labels.length - (twoPart ? 3 : 2);
+  const label = labels[Math.max(0, at)];
+  const sub = at > 0 ? labels[at - 1] : "";
+  if (label === "google" && GOOGLE_APPS[sub]) return GOOGLE_APPS[sub];
+  const brand = KNOWN_NAMES[label] || label.split("-").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return PRODUCT_SUBDOMAINS.has(sub) ? `${brand} ${sub.charAt(0).toUpperCase() + sub.slice(1)}` : brand;
+}
+
+// A site's own small icon from Google's favicon service: shown for a new link until the
+// deploy has downloaded its proper icon (about a minute).
+const faviconUrl = (url) => {
+  try { return `https://www.google.com/s2/favicons?sz=128&domain=${new URL(url).hostname}`; } catch { return ""; }
+};
+const pendingFavicons = new Map(); // slug → URL of links added in this tab, until their icon exists
+
 function svg(paths) {
   const el = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   el.setAttribute("viewBox", "0 0 24 24");
@@ -104,6 +146,7 @@ function iconBox(link) {
   img.onerror = () => {
     sources.shift();
     if (sources.length) { img.src = sources[0]; return; }
+    if (pendingFavicons.has(s)) return void box.replaceWith(faviconBox(pendingFavicons.get(s), link.name));
     setLetter(box, link.name);
   };
   img.src = sources[0];
@@ -123,6 +166,19 @@ function letterBox(name) {
   const box = document.createElement("span");
   box.className = "icon";
   setLetter(box, name);
+  return box;
+}
+
+// The favicon sits small on a white tile, like the real icons do; letter tile if it fails.
+function faviconBox(url, name) {
+  const box = document.createElement("span");
+  box.className = "icon favicon";
+  const img = new Image();
+  img.alt = "";
+  img.referrerPolicy = "no-referrer";
+  img.onerror = () => { box.classList.remove("favicon"); setLetter(box, name || "?"); };
+  img.src = faviconUrl(url);
+  box.append(img);
   return box;
 }
 
@@ -154,6 +210,7 @@ function linkTile(link) {
   a.className = "tile";
   a.href = link.url;
   a.rel = "noreferrer";
+  a.dataset.link = slug(link.name);
   if (linkTarget === "new") a.target = "_blank";
   const label = document.createElement("span");
   label.className = "label";
@@ -247,6 +304,8 @@ function findLink(d, linkSlug) {
 function serialize(d) {
   const lines = ["{", `  "title": ${JSON.stringify(d.title)},`];
   if (d.wallpaper) lines.push(`  "wallpaper": ${JSON.stringify(d.wallpaper)},`);
+  if (d.wallpaper && d.wallpaperDim !== undefined) lines.push(`  "wallpaperDim": ${JSON.stringify(d.wallpaperDim)},`);
+  if (d.wallpaper && d.wallpaperBlur) lines.push(`  "wallpaperBlur": ${JSON.stringify(d.wallpaperBlur)},`);
   lines.push('  "sections": [');
   d.sections.forEach((s, si) => {
     lines.push("    {", `      "name": ${JSON.stringify(s.name)},`);
@@ -461,7 +520,10 @@ const mgr = {
   iconTarget: null, // link whose icon is being picked
   refetch: new Set(), // links whose icon is deleted on save, so the deploy downloads it again
   picked: new Set(), // ticked links in the shown group, for moving or deleting several at once
+  autoNamed: new WeakSet(), // new links whose name was guessed from the address (replaced as the address changes)
 };
+
+const looksLikeUrl = (text) => /^(https?:\/\/)?[^\s/]+\.[a-z]{2,}(\/\S*)?$/i.test(text.trim());
 
 function startEditing(json) {
   mgr.base = clone(json);
@@ -469,6 +531,7 @@ function startEditing(json) {
   mgr.icons.clear();
   mgr.refetch.clear();
   mgr.picked.clear();
+  mgr.autoNamed = new WeakSet();
   mgr.origName = new WeakMap();
   for (const g of mgr.work.sections) for (const l of g.links) mgr.origName.set(l, l.name);
   mgr.selected = Math.max(0, Math.min(mgr.selected, mgr.work.sections.length - 1));
@@ -731,10 +794,18 @@ function linkRow(g, link, i) {
   iconBtn.title = "Change icon";
   iconBtn.setAttribute("aria-label", `Change icon for ${link.name || "new link"}`);
   const orig = mgr.origName.get(link);
+  // A new link previews the site's own icon as soon as its address is valid.
+  const newLinkBox = () => (normalizeUrl(link.url) ? faviconBox(normalizeUrl(link.url), link.name) : letterBox(link.name || "?"));
   const box = mgr.icons.has(link) ? imageBox(mgr.icons.get(link))
     : orig !== undefined ? iconBox({ ...link, name: orig })
-    : letterBox(link.name || "?");
+    : newLinkBox();
   iconBtn.append(wrapIcon(box));
+  let previewTimer;
+  const refreshPreview = () => {
+    if (orig !== undefined || mgr.icons.has(link)) return;
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(() => iconBtn.querySelector(".icon-wrap").replaceWith(wrapIcon(newLinkBox())), 350);
+  };
   iconBtn.onclick = () => { mgr.iconTarget = link; $("#mgr-file").click(); };
   if (mgr.refetch.has(link)) {
     iconBtn.title = "Icon will be downloaded again after saving";
@@ -748,11 +819,24 @@ function linkRow(g, link, i) {
   fields.className = "row-fields";
   const name = document.createElement("input");
   name.className = "row-name";
-  name.placeholder = "Name";
+  name.placeholder = orig === undefined ? "Name, or paste a link" : "Name";
   name.value = link.name;
   name.maxLength = 40;
   name.setAttribute("aria-label", "Link name");
-  name.oninput = () => { link.name = name.value; touched(); };
+  name.oninput = () => {
+    // A link pasted into the name box goes where it belongs, and the name is filled in.
+    if (orig === undefined && !link.url.trim() && looksLikeUrl(name.value)) {
+      link.url = url.value = name.value.trim();
+      link.name = name.value = guessName(link.url);
+      mgr.autoNamed.add(link);
+      name.select();
+      refreshPreview();
+    } else {
+      link.name = name.value;
+      mgr.autoNamed.delete(link); // typed by hand: keep it
+    }
+    touched();
+  };
   const url = document.createElement("input");
   url.className = "row-url";
   url.placeholder = "https://";
@@ -761,7 +845,15 @@ function linkRow(g, link, i) {
   url.autocapitalize = "off";
   url.spellcheck = false;
   url.setAttribute("aria-label", "Link URL");
-  url.oninput = () => { link.url = url.value; touched(); };
+  url.oninput = () => {
+    link.url = url.value;
+    if (orig === undefined && (!link.name.trim() || mgr.autoNamed.has(link))) {
+      link.name = name.value = guessName(url.value);
+      mgr.autoNamed.add(link);
+    }
+    refreshPreview();
+    touched();
+  };
   fields.append(name, url);
 
   const move = document.createElement("select");
@@ -1032,6 +1124,9 @@ $("#mgr-save").addEventListener("click", async () => {
     await putLinks(work, sha, "Update groups and links");
     for (const p of stale) await deleteFile(p, `Re-download icon: ${p}`);
     for (const u of uploads) freshIcons.set(slug(u.link.name), u.url);
+    for (const g of work.sections) for (const l of g.links) {
+      if (mgr.origName.get(l) === undefined && !mgr.icons.has(l)) pendingFavicons.set(slug(l.name), l.url);
+    }
     data = clone(work);
     render();
     startEditing(data);
@@ -1389,26 +1484,90 @@ function setWallpaperLayer(url) {
   else if (!themeColor.isConnected) document.head.append(themeColor);
 }
 
-function applyWallpaper() {
-  const src = data.wallpaper;
+/* Dim and blur, saved in links.json with the wallpaper ("wallpaperDim" 0–80, "wallpaperBlur" 0–20).
+   Dim is the dark layer over the photo; 30 is the default. CSS can't blur the page canvas the
+   wallpaper is painted on, so blur makes a blurred copy of the image in the browser instead. */
+const DEFAULT_DIM = 30;
+const wallpaperLook = (d = data) => ({ dim: d.wallpaperDim ?? DEFAULT_DIM, blur: d.wallpaperBlur ?? 0 });
+const blurCache = new Map(); // "src|blur" → blurred image (data URL), or null if the site doesn't allow it
+
+// Shrinks the image by halves, then grows it back the same way: a smooth blur that works in
+// every browser (Safari has no canvas blur filter).
+async function blurredWallpaper(src, blur) {
+  const key = `${src}|${blur}`;
+  if (blurCache.has(key)) return blurCache.get(key);
+  let result = null;
+  try {
+    const img = new Image();
+    img.crossOrigin = "anonymous"; // without this the browser won't let us read the pixels back
+    img.src = src;
+    await img.decode();
+    const scale = Math.min(1, 1600 / img.naturalWidth);
+    const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
+    const canvas = (cw, ch) => Object.assign(document.createElement("canvas"), { width: Math.max(1, cw), height: Math.max(1, ch) });
+    let cur = canvas(w, h);
+    cur.getContext("2d").drawImage(img, 0, 0, w, h);
+    const steps = Math.max(1, Math.round(Math.log2(blur * (w / 1440)) + 1));
+    const sizes = [];
+    for (let i = 0; i < steps; i++) {
+      sizes.push([cur.width, cur.height]);
+      const next = canvas(Math.round(cur.width / 2), Math.round(cur.height / 2));
+      const ctx = next.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(cur, 0, 0, next.width, next.height);
+      cur = next;
+    }
+    for (const [cw, ch] of sizes.reverse()) {
+      const next = canvas(cw, ch);
+      const ctx = next.getContext("2d");
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(cur, 0, 0, cw, ch);
+      cur = next;
+    }
+    result = cur.toDataURL("image/jpeg", 0.85);
+  } catch {
+    result = null; // another site's image that doesn't allow reading (CORS)
+  }
+  blurCache.set(key, result);
+  return result;
+}
+
+let blurBlocked = false; // the shown picture is from a site that doesn't allow blurring it
+
+// `look` overrides the saved dim/blur, for the live preview while the dialog is open.
+// Resolves once the picture is on screen.
+function applyWallpaper(look = wallpaperLook(), src = data.wallpaper) {
+  document.documentElement.style.setProperty("--wp-dim", look.dim / 100);
   if (!src) {
     wallpaperShown = "";
     setWallpaperLayer(null);
-    return;
+    return Promise.resolve();
   }
-  if (wallpaperShown === src) return; // already showing it
-  wallpaperShown = src;
-  // Load it first, so a broken URL never leaves light text on a blank page.
-  const sources = wallpaperSources(src);
-  const probe = new Image();
-  probe.referrerPolicy = "no-referrer";
-  probe.onload = () => { if (wallpaperShown === src) setWallpaperLayer(probe.src); };
-  probe.onerror = () => {
-    sources.shift();
-    if (sources.length) probe.src = sources[0];
-    else if (wallpaperShown === src) setWallpaperLayer(null);
-  };
-  probe.src = sources[0];
+  const key = `${src}|${look.blur}`;
+  if (wallpaperShown === key) return Promise.resolve(); // already showing it
+  wallpaperShown = key;
+  return new Promise((resolve) => {
+    // Load it first, so a broken URL never leaves light text on a blank page.
+    const sources = wallpaperSources(src);
+    const probe = new Image();
+    probe.referrerPolicy = "no-referrer";
+    probe.onload = async () => {
+      if (wallpaperShown !== key) return resolve();
+      const blurred = look.blur ? await blurredWallpaper(probe.src, look.blur) : null;
+      if (wallpaperShown === key) {
+        blurBlocked = Boolean(look.blur) && !blurred;
+        setWallpaperLayer(blurred || probe.src);
+      }
+      resolve();
+    };
+    probe.onerror = () => {
+      sources.shift();
+      if (sources.length) return void (probe.src = sources[0]);
+      if (wallpaperShown === key) setWallpaperLayer(null);
+      resolve();
+    };
+    probe.src = sources[0];
+  });
 }
 
 // Big photos are scaled down to 2560px on the long side and saved as JPEG.
@@ -1447,6 +1606,7 @@ function loadImage(src) {
 
 function showPreview(src) {
   const box = $("#wp-preview");
+  $("#wp-adjust").hidden = !src;
   box.replaceChildren();
   box.style.backgroundImage = "";
   if (src) {
@@ -1471,16 +1631,74 @@ function setTab(tab) {
   if (!device) $("#wp-url").focus();
 }
 
+// The sliders preview on the small picture right away, and on the page itself behind the dialog.
+let look = { dim: DEFAULT_DIM, blur: 0 };
+
+function showLook() {
+  $("#wp-dim").value = look.dim;
+  $("#wp-blur").value = look.blur;
+  $("#wp-dim-out").textContent = `${look.dim}%`;
+  $("#wp-blur-out").textContent = look.blur ? String(look.blur) : "Off";
+  const box = $("#wp-preview");
+  box.style.setProperty("--wp-dim", look.dim / 100);
+  box.style.setProperty("--wp-blur", `${(look.blur * box.clientWidth) / 1440}px`);
+}
+
+const lookChanged = () => {
+  const saved = wallpaperLook();
+  return look.dim !== saved.dim || look.blur !== saved.blur;
+};
+function updateWpSave() {
+  $("#wp-save").disabled = !pendingWallpaper && !lookChanged();
+  $("#wp-save").textContent = pendingWallpaper || !data.wallpaper ? "Set Wallpaper" : "Save";
+}
+
+async function previewLookOnPage() {
+  const src = pendingWallpaper?.kind === "file" ? pendingWallpaper.dataUrl : pendingWallpaper?.url || data.wallpaper;
+  if (!src) return;
+  if (pendingWallpaper) {
+    // A new picture isn't saved yet: paint it straight on the page for the preview.
+    document.documentElement.style.setProperty("--wp-dim", look.dim / 100);
+    const blurred = look.blur ? await blurredWallpaper(src, look.blur) : null;
+    blurBlocked = Boolean(look.blur) && !blurred;
+    wallpaperShown = "";
+    setWallpaperLayer(blurred || src);
+  } else {
+    await applyWallpaper(look);
+  }
+  $("#wp-blur-note").hidden = !blurBlocked;
+}
+
+for (const [id, key] of [["#wp-dim", "dim"], ["#wp-blur", "blur"]]) {
+  $(id).addEventListener("input", (e) => {
+    look[key] = Number(e.target.value);
+    showLook();
+    updateWpSave();
+    if (key === "dim") document.documentElement.style.setProperty("--wp-dim", look.dim / 100);
+  });
+  $(id).addEventListener("change", previewLookOnPage); // blur is heavier: redo the page when the slider is let go
+}
+
+// Closing without saving puts the page back the way it was.
+wallpaperDialog.addEventListener("close", () => {
+  wallpaperShown = "";
+  if (data) applyWallpaper();
+});
+
 function openWallpaper() {
+  look = wallpaperLook();
   pendingWallpaper = null;
   $("#wp-file").value = "";
   $("#wp-url").value = "";
   $("#wp-status").textContent = "";
   $("#wp-save").disabled = true;
   $("#wp-remove").hidden = !data.wallpaper;
+  $("#wp-blur-note").hidden = true;
   showPreview(data.wallpaper ? wallpaperSources(data.wallpaper)[0] : null);
   setTab("device");
+  updateWpSave();
   wallpaperDialog.showModal();
+  showLook();
 }
 
 async function pickWallpaperFile(file) {
@@ -1491,8 +1709,9 @@ async function pickWallpaperFile(file) {
     const dataUrl = await wallpaperFromFile(file);
     pendingWallpaper = { kind: "file", dataUrl };
     showPreview(dataUrl);
+    showLook();
     $("#wp-status").textContent = `Ready · ${Math.round((dataUrl.length * 3) / 4 / 1024)} KB`;
-    $("#wp-save").disabled = false;
+    updateWpSave();
   } catch {
     $("#wp-status").textContent = "Couldn't read that image. Try a JPG or PNG.";
   }
@@ -1507,8 +1726,9 @@ async function previewWallpaperUrl() {
     await loadImage(url);
     pendingWallpaper = { kind: "url", url };
     showPreview(url);
+    showLook();
     $("#wp-status").textContent = "Ready";
-    $("#wp-save").disabled = false;
+    updateWpSave();
   } catch {
     pendingWallpaper = null;
     $("#wp-status").textContent = "Couldn't load an image from that URL. Use a direct link to the image file.";
@@ -1530,30 +1750,36 @@ $("#wp-load").addEventListener("click", previewWallpaperUrl);
 $("#wp-url").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); previewWallpaperUrl(); } });
 
 $("#wp-save").addEventListener("click", async () => {
-  if (!pendingWallpaper) return;
+  if (!pendingWallpaper && !lookChanged()) return;
   const status = $("#wp-status");
   const old = data.wallpaper;
   setDisabled(wallpaperDialog, true);
   status.textContent = "Saving…";
   try {
     requireConnection();
-    let value;
-    if (pendingWallpaper.kind === "file") {
+    let value = old;
+    if (pendingWallpaper?.kind === "file") {
       value = `wallpapers/wallpaper-${Date.now()}.jpg`;
       await putFile(value, pendingWallpaper.dataUrl.split(",")[1], "Upload wallpaper");
       freshWallpaper = { path: value, url: pendingWallpaper.dataUrl };
-    } else {
+    } else if (pendingWallpaper) {
       value = pendingWallpaper.url;
     }
-    await save((d) => { d.wallpaper = value; }, "Change wallpaper");
+    const setLook = (d) => {
+      if (look.dim === DEFAULT_DIM) delete d.wallpaperDim; else d.wallpaperDim = look.dim;
+      if (look.blur) d.wallpaperBlur = look.blur; else delete d.wallpaperBlur;
+    };
+    await save((d) => { d.wallpaper = value; setLook(d); }, pendingWallpaper ? "Change wallpaper" : "Adjust wallpaper dim and blur");
     if (old && !old.startsWith("http") && old !== value) deleteFile(old, "Remove old wallpaper");
+    const changedPicture = Boolean(pendingWallpaper);
+    pendingWallpaper = null;
     wallpaperDialog.close();
-    toast("Wallpaper set");
+    toast(changedPicture ? "Wallpaper set" : "Wallpaper updated");
   } catch (err) {
     status.textContent = err.message;
   } finally {
     setDisabled(wallpaperDialog, false);
-    $("#wp-save").disabled = !pendingWallpaper;
+    updateWpSave();
   }
 });
 
@@ -1564,7 +1790,7 @@ $("#wp-remove").addEventListener("click", async () => {
   $("#wp-status").textContent = "Removing…";
   try {
     requireConnection();
-    await save((d) => { delete d.wallpaper; }, "Remove wallpaper");
+    await save((d) => { delete d.wallpaper; delete d.wallpaperDim; delete d.wallpaperBlur; }, "Remove wallpaper");
     if (old && !old.startsWith("http")) deleteFile(old, "Remove old wallpaper");
     wallpaperDialog.close();
     toast("Wallpaper removed");
@@ -1664,6 +1890,314 @@ for (const dialog of [githubDialog, wallpaperDialog, historyDialog]) {
     if (e.target === dialog || e.target.closest("[data-close]")) dialog.close();
   });
 }
+
+/* ---------- Tile menu: right-click or long-press a tile ---------- */
+// Each action saves straight away (one commit), unlike the Manage panel's staged edits.
+
+const tileMenu = $("#tile-menu");
+let menuFor = null; // slug of the link the menu was opened on
+
+function openTileMenu(tile, x, y) {
+  if (arranging || tileMenu.matches(":popover-open")) return;
+  menuFor = tile.dataset.link;
+  $("#menu-open-label").textContent = linkTarget === "new" ? "Open in This Tab" : "Open in New Tab";
+  tileMenu.showPopover();
+  // Next to the pointer, flipped up or left when it would run off the screen.
+  const { width, height } = tileMenu.getBoundingClientRect();
+  const left = x + width > innerWidth - 8 ? x - width : x;
+  const top = y + height > innerHeight - 8 ? y - height : y;
+  tileMenu.style.left = `${Math.max(8, left)}px`;
+  tileMenu.style.top = `${Math.max(8, top)}px`;
+  tileMenu.querySelector("button").focus({ preventScroll: true });
+}
+
+// Closed by hand: the browser's own "click outside" would also fire on the release of the
+// right-click that opened it.
+const closeTileMenu = () => { if (tileMenu.matches(":popover-open")) tileMenu.hidePopover(); };
+window.addEventListener("pointerdown", (e) => { if (!tileMenu.contains(e.target)) closeTileMenu(); }, true);
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && tileMenu.matches(":popover-open")) { e.preventDefault(); closeTileMenu(); } }, true);
+for (const ev of ["resize", "blur"]) window.addEventListener(ev, closeTileMenu);
+document.addEventListener("scroll", closeTileMenu, true);
+// Arrow keys walk the menu
+tileMenu.addEventListener("keydown", (e) => {
+  const step = { ArrowDown: 1, ArrowUp: -1 }[e.key];
+  if (!step) return;
+  e.preventDefault();
+  const items = [...tileMenu.querySelectorAll("button")];
+  items[(items.indexOf(document.activeElement) + step + items.length) % items.length].focus();
+});
+
+$("#sections").addEventListener("contextmenu", (e) => {
+  const tile = e.target.closest(".tile");
+  if (!tile || arranging) return;
+  e.preventDefault();
+  const r = tile.getBoundingClientRect();
+  const keyboard = !e.clientX && !e.clientY; // the Menu key / Shift+F10
+  openTileMenu(tile, keyboard ? r.left + r.width / 2 : e.clientX, keyboard ? r.bottom : e.clientY);
+});
+
+// Touch: hold a tile for half a second. (iOS doesn't fire "contextmenu" for links.)
+let pressTimer = 0;
+let swallowClick = false; // the finger lifting after a long-press mustn't open the link
+$("#sections").addEventListener("pointerdown", (e) => {
+  swallowClick = false;
+  const tile = e.target.closest(".tile");
+  if (!tile || e.pointerType === "mouse" || arranging) return;
+  const x0 = e.clientX, y0 = e.clientY;
+  const stop = () => {
+    clearTimeout(pressTimer);
+    for (const t of ["pointermove", "pointerup", "pointercancel"]) window.removeEventListener(t, watch);
+  };
+  const watch = (ev) => { if (ev.type !== "pointermove" || Math.hypot(ev.clientX - x0, ev.clientY - y0) > 10) stop(); };
+  for (const t of ["pointermove", "pointerup", "pointercancel"]) window.addEventListener(t, watch);
+  clearTimeout(pressTimer);
+  pressTimer = setTimeout(() => {
+    stop();
+    swallowClick = true;
+    navigator.vibrate?.(10);
+    const r = tile.getBoundingClientRect();
+    openTileMenu(tile, r.left, r.bottom + 6);
+  }, 500);
+});
+$("#sections").addEventListener("click", (e) => {
+  if (!swallowClick && !arranging) return;
+  e.preventDefault();
+  swallowClick = false;
+}, true);
+
+// Saves a change made from the menu, with the result as a toast.
+async function quickSave(change, message, done, icon) {
+  try {
+    await save(change, message, icon);
+    if (done) toast(done);
+    return true;
+  } catch (err) {
+    toast(err.message);
+    return false;
+  }
+}
+
+const gone = () => new Error("That link was changed on another device. Try again.");
+
+tileMenu.addEventListener("click", async (e) => {
+  const act = e.target.closest("button[data-act]")?.dataset.act;
+  if (!act) return;
+  closeTileMenu();
+  const link = findLink(data, menuFor)?.link;
+  if (!link) return;
+  if (act === "open") {
+    if (linkTarget === "new") location.href = link.url;
+    else window.open(link.url, "_blank", "noopener,noreferrer");
+  } else if (act === "copy") {
+    try { await navigator.clipboard.writeText(link.url); toast("Link copied"); } catch { toast("Couldn't copy the link"); }
+  } else if (act === "edit") {
+    openEdit(link);
+  } else if (act === "refetch") {
+    refetchIcon(link);
+  } else if (act === "arrange") {
+    startArrange();
+  } else if (act === "delete") {
+    if (!confirm(`Delete “${link.name}”?`)) return;
+    const s = slug(link.name);
+    quickSave((d) => {
+      const f = findLink(d, s);
+      if (!f) throw gone();
+      f.section.links.splice(f.index, 1);
+    }, `Delete ${link.name}`, `Deleted ${link.name}`);
+  }
+});
+
+// Deletes the icon files so the next deploy downloads the icon again.
+async function refetchIcon(link) {
+  const s = slug(link.name);
+  const paths = new Set([`icons/${s}.png`, isLocalPath(link.icon) ? link.icon : null].filter(Boolean));
+  for (const p of [...paths]) paths.add(p.replace(/^icons\//, "icons/dark/"));
+  try {
+    requireConnection();
+    toast("Re-downloading…");
+    if (isLocalPath(link.icon)) {
+      await save((d) => { const f = findLink(d, s); if (f) delete f.link.icon; }, `Re-download icon: ${link.name}`);
+    }
+    for (const p of paths) await deleteFile(p, `Re-download icon: ${link.name}`);
+    freshIcons.delete(s);
+    toast("The new icon appears after the deploy, in about a minute.");
+  } catch (err) {
+    toast(err.message);
+  }
+}
+
+/* Edit one link: name, address, group, icon */
+
+const editDialog = $("#edit-dialog");
+const editing = { slug: null, icon: null };
+editDialog.addEventListener("click", (e) => {
+  if (e.target === editDialog || e.target.closest("[data-close]")) editDialog.close();
+});
+
+function openEdit(link) {
+  const found = findLink(data, slug(link.name));
+  editing.slug = slug(link.name);
+  editing.icon = null;
+  $("#edit-name").value = link.name;
+  $("#edit-url").value = link.url;
+  $("#edit-group").replaceChildren(...data.sections.map((s) => new Option(s.name, slug(s.name), false, s === found.section)));
+  $("#edit-icon").replaceChildren(wrapIcon(iconBox(link)));
+  $("#edit-status").textContent = "";
+  editDialog.showModal();
+}
+
+$("#edit-icon").addEventListener("click", () => $("#edit-file").click());
+$("#edit-file").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    editing.icon = await iconFromFile(file);
+    $("#edit-icon").replaceChildren(wrapIcon(imageBox(editing.icon)));
+  } catch {
+    toast("Couldn't read that image. Try a PNG, JPG or SVG.");
+  }
+});
+
+$("#edit-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const status = $("#edit-status");
+  const name = $("#edit-name").value.trim();
+  const raw = $("#edit-url").value.trim();
+  const url = /^https?:\/\//i.test(raw) ? raw : normalizeUrl(raw);
+  const groupSlug = $("#edit-group").value;
+  if (!slug(name).replace(/-/g, "")) return void (status.textContent = "Give it a name.");
+  if (!normalizeUrl(raw)) return void (status.textContent = "That URL doesn't look right.");
+  const from = editing.slug, to = slug(name);
+  const icon = editing.icon;
+  setDisabled(editDialog, true);
+  status.textContent = "Saving…";
+  const ok = await quickSave((d) => {
+    const f = findLink(d, from);
+    if (!f) throw gone();
+    if (to !== from && findLink(d, to)) throw new Error(`Another link is already called “${name}”.`);
+    const l = f.link;
+    if (icon) delete l.icon;
+    else if (to !== from && !l.icon && loadedIcons.has(from)) l.icon = `icons/${from}.png`; // keep its icon file
+    l.name = name;
+    l.url = url;
+    const target = findGroup(d, groupSlug);
+    if (target && target !== f.section) {
+      f.section.links.splice(f.index, 1);
+      target.links.push(l);
+    }
+  }, `Edit ${name}`, null, icon ? { path: `icons/${to}.png`, base64: icon.split(",")[1] } : undefined);
+  setDisabled(editDialog, false);
+  if (!ok) return void (status.textContent = "");
+  if (icon) { freshIcons.set(to, icon); render(); }
+  editDialog.close();
+  toast("Saved. Other devices update in about a minute.");
+});
+
+/* Rearrange: icons jiggle like the iPhone home screen; drag them, then Done saves the order. */
+
+let arranging = null; // { group, before } while rearranging
+
+const visibleSection = () => document.querySelector("#sections section:not(.hidden)");
+const tileOrder = (section) => [...section.querySelectorAll(".tile")].map((t) => t.dataset.link);
+
+function startArrange() {
+  const section = visibleSection();
+  if (!section || arranging) return;
+  if (!token.get()) return void openGithub("Connect GitHub to save a new order.");
+  arranging = { group: section.dataset.slug, before: tileOrder(section) };
+  document.body.classList.add("arranging");
+  $("#arrange-bar").hidden = false;
+}
+
+async function endArrange(keep) {
+  if (!arranging) return;
+  const section = visibleSection();
+  const order = tileOrder(section);
+  const { group, before } = arranging;
+  arranging = null;
+  document.body.classList.remove("arranging");
+  $("#arrange-bar").hidden = true;
+  if (order.join() === before.join()) return;
+  if (!keep) return void render();
+  const name = findGroup(data, group)?.name || "group";
+  const pos = new Map(order.map((s, i) => [s, i]));
+  const ok = await quickSave((d) => {
+    const g = findGroup(d, group);
+    if (!g) throw gone();
+    // Links added on another device meanwhile keep their place at the end.
+    g.links.sort((a, b) => (pos.get(slug(a.name)) ?? 1e9) - (pos.get(slug(b.name)) ?? 1e9));
+  }, `Reorder ${name}`, "Order saved");
+  if (!ok) render();
+}
+
+$("#arrange-done").addEventListener("click", () => endArrange(true));
+$("#arrange-cancel").addEventListener("click", () => endArrange(false));
+
+// Drag: the tile follows the finger or pointer; the others slide aside. Neighbours are what
+// move in the page, never the dragged tile, so touch screens don't lose track of the finger.
+function moveTile(tile, to) {
+  const grid = tile.parentElement;
+  const all = [...grid.querySelectorAll(".tile")];
+  const from = all.indexOf(tile);
+  if (to === from || to < 0 || to >= all.length) return;
+  const was = new Map(all.map((t) => [t, [t.offsetLeft, t.offsetTop]]));
+  if (to > from) tile.before(...all.slice(from + 1, to + 1));
+  else tile.after(...all.slice(to, from));
+  for (const t of all) {
+    if (t === tile) continue;
+    const [x, y] = was.get(t);
+    const dx = x - t.offsetLeft, dy = y - t.offsetTop;
+    if (!dx && !dy) continue;
+    t.style.transition = "none";
+    t.style.transform = `translate(${dx}px, ${dy}px)`;
+    t.getBoundingClientRect();
+    t.style.transition = "transform .22s ease";
+    t.style.transform = "";
+  }
+}
+
+$("#sections").addEventListener("pointerdown", (e) => {
+  const tile = e.target.closest(".tile");
+  if (!arranging || !tile || e.button > 0) return;
+  e.preventDefault();
+  const grid = tile.parentElement;
+  const sx = e.clientX, sy = e.clientY, ox = tile.offsetLeft, oy = tile.offsetTop;
+  tile.classList.add("lifted");
+  const follow = (ev) => {
+    const g = grid.getBoundingClientRect();
+    const px = ev.clientX - g.left, py = ev.clientY - g.top;
+    // Which tile's slot is the pointer over? (Layout boxes, so sliding tiles don't flicker.)
+    const all = [...grid.querySelectorAll(".tile")];
+    const over = all.findIndex((t) => t !== tile && px >= t.offsetLeft && px < t.offsetLeft + t.offsetWidth && py >= t.offsetTop && py < t.offsetTop + t.offsetHeight);
+    if (over >= 0) moveTile(tile, over);
+    tile.style.transform = `translate(${ev.clientX - sx - (tile.offsetLeft - ox)}px, ${ev.clientY - sy - (tile.offsetTop - oy)}px)`;
+  };
+  const drop = () => {
+    for (const [t, f] of [["pointermove", follow], ["pointerup", drop], ["pointercancel", drop]]) window.removeEventListener(t, f);
+    tile.classList.remove("lifted");
+    tile.style.transition = "transform .2s ease";
+    tile.style.transform = "";
+    setTimeout(() => { tile.style.transition = ""; }, 220);
+  };
+  window.addEventListener("pointermove", follow);
+  window.addEventListener("pointerup", drop);
+  window.addEventListener("pointercancel", drop);
+});
+
+// Keyboard: arrow keys move the focused tile; Enter/Escape finish.
+document.addEventListener("keydown", (e) => {
+  if (!arranging || document.querySelector("dialog[open]")) return;
+  if (e.key === "Escape") return void endArrange(false);
+  if (e.key === "Enter") { e.preventDefault(); return void endArrange(true); }
+  const tile = e.target.closest?.(".tile");
+  const step = { ArrowLeft: -1, ArrowUp: -1, ArrowRight: 1, ArrowDown: 1 }[e.key];
+  if (!tile || !step) return;
+  e.preventDefault();
+  const all = [...tile.parentElement.querySelectorAll(".tile")];
+  moveTile(tile, all.indexOf(tile) + step);
+  tile.focus();
+}, true);
 
 /* ---------- Quick launch ---------- */
 // ⌘K / Ctrl+K, "/", or just start typing a name: a short list of matching links, Enter opens one.
@@ -1772,7 +2306,7 @@ document.addEventListener("keydown", (e) => {
     else if (!document.querySelector("dialog[open]")) openLauncher();
     return;
   }
-  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !data) return;
+  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !data || arranging) return;
   if (document.querySelector("dialog[open]")) return;
   const field = e.target.closest?.("input, textarea, select, [contenteditable]");
   if (field && !field.closest("dialog:not([open])")) return; // typing in a field (focus can linger in a closed dialog)
