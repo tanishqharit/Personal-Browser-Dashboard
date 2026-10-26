@@ -32,6 +32,9 @@
       <button type="button" class="nav-btn" id="view-btn" aria-label="View">
         <svg viewBox="0 0 24 24" aria-hidden="true" id="view-btn-svg"></svg><span class="wide" id="view-btn-label">View</span>
       </button>
+      <button type="button" class="nav-btn" id="tab-btn" aria-label="Open links">
+        <svg viewBox="0 0 24 24" aria-hidden="true" id="tab-btn-svg"></svg><span class="wide" id="tab-btn-label">Open Links</span>
+      </button>
       <button type="button" class="nav-btn" id="icons-btn" aria-label="Icon style">
         <svg viewBox="0 0 24 24" aria-hidden="true" id="icons-btn-svg"></svg><span class="wide" id="icons-btn-label">Icons</span>
       </button>
@@ -49,6 +52,10 @@
     <div class="sheet">
       <header class="sheet-head">
         <h2>Manage Groups &amp; Links</h2>
+        <span class="spacer"></span>
+        <button type="button" class="btn" id="mgr-history" title="See past saves and restore one">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>History
+        </button>
         <button type="button" class="icon-btn" id="mgr-close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </header>
       <div class="mgr-body">
@@ -139,6 +146,7 @@
           <dt>Branch</dt><dd id="gh-branch"></dd>
           <dt>Account</dt><dd id="gh-account">—</dd>
           <dt>Token</dt><dd id="gh-token-mask">—</dd>
+          <dt>Expires</dt><dd><input type="date" id="gh-expiry" class="inline-date" aria-label="Token expiry date"><span id="gh-expiry-none">—</span></dd>
         </dl>
 
         <ul class="checks" id="gh-checks" hidden></ul>
@@ -151,6 +159,8 @@
             <li>Generate, copy, and paste it below. It's stored only in this browser.</li>
           </ol>
           <label>Personal access token <input id="f-token" type="password" autocomplete="off" spellcheck="false" placeholder="github_pat_…"></label>
+          <label>Expires on <span class="optional">(optional)</span> <input id="f-expiry" type="date"></label>
+          <p class="hint">GitHub shows the date when you create the token. With it, the dot turns amber a week before it runs out.</p>
           <p class="status" id="gh-status" role="status"></p>
         </form>
       </div>
@@ -160,6 +170,41 @@
         <button type="button" class="btn" id="gh-test">Test Connection</button>
         <button type="submit" form="gh-form" class="btn primary" id="gh-connect">Connect</button>
       </footer>
+    </div>
+  </dialog>
+
+  <!-- History of links.json: see and restore past saves -->
+  <dialog id="history-dialog">
+    <div class="sheet">
+      <header class="sheet-head">
+        <h2>History</h2>
+        <button type="button" class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+      </header>
+      <div class="sheet-body">
+        <p class="hint">Every save of your groups and links. Pick one to see what restoring it would change. The wallpaper stays as it is.</p>
+        <ul class="hist-list" id="hist-list"></ul>
+        <p class="status" id="hist-status" role="status"></p>
+      </div>
+      <footer class="sheet-foot">
+        <a class="hint" id="hist-all" target="_blank" rel="noreferrer">All changes on GitHub</a>
+        <span class="spacer"></span>
+        <button type="button" class="btn" data-close>Close</button>
+        <button type="button" class="btn primary" id="hist-restore" disabled>Restore</button>
+      </footer>
+    </div>
+  </dialog>
+
+  <!-- Quick launch: ⌘K / Ctrl+K, "/" or just start typing -->
+  <dialog id="launcher" aria-label="Open a link">
+    <div class="launch">
+      <div class="launch-field">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input id="launch-input" placeholder="Open a link…" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="go"
+               role="combobox" aria-expanded="true" aria-controls="launch-list" aria-autocomplete="list">
+        <kbd>esc</kbd>
+      </div>
+      <ul id="launch-list" role="listbox" aria-label="Links"></ul>
+      <p class="launch-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>⇧</kbd><kbd>↵</kbd> <span id="launch-alt">new tab</span></span></p>
     </div>
   </dialog>
 

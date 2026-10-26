@@ -47,7 +47,17 @@ const ICON = {
   grip: '<path d="M5 8h14M5 12h14M5 16h14"/>',
   trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.6-4.5L4 8"/><path d="M4 4v4h4M4 13a8 8 0 0 0 14.6 4.5L20 16"/><path d="M20 20v-4h-4"/>',
+  close: '<path d="M6 6l12 12M18 6 6 18"/>',
 };
+
+// First character the user sees (an emoji can be several code points).
+function firstGrapheme(text) {
+  const t = (text || "").trim();
+  if (!t) return "";
+  if (typeof Intl !== "undefined" && Intl.Segmenter) return new Intl.Segmenter().segment(t)[Symbol.iterator]().next().value.segment;
+  return [...t][0];
+}
 
 function iconButton(name, label, onClick, extra = "") {
   const b = document.createElement("button");
@@ -68,6 +78,10 @@ const ICON_MODES = ["light", "dark"];
 let iconMode = (() => { try { return localStorage.getItem("icon-theme"); } catch { return null; } })();
 if (!ICON_MODES.includes(iconMode)) iconMode = "dark";
 const useDarkIcons = () => iconMode === "dark";
+
+// Open links in this tab (a start page) or a new one. Also per browser.
+let linkTarget = (() => { try { return localStorage.getItem("link-target"); } catch { return null; } })();
+if (linkTarget !== "new") linkTarget = "same";
 
 // Icon priority: icon uploaded this session → local "icon" path or icons/<slug>.png
 // → same file on raw.githubusercontent (just committed) → colored letter tile.
@@ -140,6 +154,7 @@ function linkTile(link) {
   a.className = "tile";
   a.href = link.url;
   a.rel = "noreferrer";
+  if (linkTarget === "new") a.target = "_blank";
   const label = document.createElement("span");
   label.className = "label";
   label.textContent = link.name;
@@ -174,12 +189,19 @@ function render() {
     return section;
   }));
 
-  const navItems = data.sections.map((s) => ({ name: s.name, slug: slug(s.name) }));
-  $("#groups").replaceChildren(...navItems.map((item) => {
+  $("#groups").replaceChildren(...data.sections.map((sec, i) => {
     const a = document.createElement("a");
-    a.href = `#${item.slug}`;
-    a.textContent = item.name;
-    a.dataset.slug = item.slug;
+    a.href = `#${slug(sec.name)}`;
+    a.dataset.slug = slug(sec.name);
+    if (i < 9) a.title = `${sec.name} (${i + 1})`; // number keys switch groups
+    if (sec.emoji) {
+      const e = document.createElement("span");
+      e.className = "g-emoji";
+      e.setAttribute("aria-hidden", "true");
+      e.textContent = sec.emoji;
+      a.append(e);
+    }
+    a.append(sec.name);
     return a;
   }));
 
@@ -227,7 +249,9 @@ function serialize(d) {
   if (d.wallpaper) lines.push(`  "wallpaper": ${JSON.stringify(d.wallpaper)},`);
   lines.push('  "sections": [');
   d.sections.forEach((s, si) => {
-    lines.push("    {", `      "name": ${JSON.stringify(s.name)},`, '      "links": [');
+    lines.push("    {", `      "name": ${JSON.stringify(s.name)},`);
+    if (s.emoji) lines.push(`      "emoji": ${JSON.stringify(s.emoji)},`);
+    lines.push('      "links": [');
     s.links.forEach((l, li) => {
       const fields = Object.entries(l).map(([k, v]) =>
         `${JSON.stringify(k)}: ${Array.isArray(v) ? `[${v.map((x) => JSON.stringify(x)).join(", ")}]` : JSON.stringify(v)}`);
@@ -249,9 +273,30 @@ const store = {
 const token = {
   get: () => store.get("gh-token"),
   login: () => store.get("gh-login"),
-  set: (t, login) => { store.set("gh-token", t); store.set("gh-login", login || ""); },
-  clear: () => { store.remove("gh-token"); store.remove("gh-login"); },
+  set: (t, login) => { store.set("gh-token", t); store.set("gh-login", login || ""); store.remove("gh-invalid"); },
+  clear: () => { for (const k of ["gh-token", "gh-login", "gh-expiry", "gh-invalid"]) store.remove(k); },
+  // GitHub doesn't let web pages read a token's expiry, so it's the date typed in when connecting.
+  expiry: () => store.get("gh-expiry") || "",
+  setExpiry: (d) => (d ? store.set("gh-expiry", d) : store.remove("gh-expiry")),
 };
+
+// Whole days from today until the token's expiry date (negative once it's past), or null.
+function daysLeft() {
+  const d = token.expiry();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) return null;
+  const [y, m, day] = d.split("-").map(Number);
+  const today = new Date();
+  return Math.round((new Date(y, m - 1, day) - new Date(today.getFullYear(), today.getMonth(), today.getDate())) / 86_400_000);
+}
+
+// "off" (no token), "bad" (rejected or expired), "warn" (expires within a week) or "on".
+function tokenHealth() {
+  if (!token.get()) return "off";
+  const left = daysLeft();
+  if (store.get("gh-invalid") || (left !== null && left < 0)) return "bad";
+  if (left !== null && left <= 7) return "warn";
+  return "on";
+}
 
 async function ghFetch(url, options = {}, tok = token.get()) {
   const r = await fetch(url, {
@@ -259,14 +304,17 @@ async function ghFetch(url, options = {}, tok = token.get()) {
     cache: "no-store",
     headers: {
       Accept: "application/vnd.github+json",
-      Authorization: `Bearer ${tok}`,
+      ...(tok ? { Authorization: `Bearer ${tok}` } : {}),
       "X-GitHub-Api-Version": "2022-11-28",
       ...(options.body ? { "Content-Type": "application/json" } : {}),
     },
   });
   if (r.ok) return r.json();
   if (r.status === 404 && (options.method || "GET") === "GET") return null;
-  if (r.status === 401) throw new Error("The GitHub token is invalid or expired. Update it in GitHub Connection.");
+  if (r.status === 401) {
+    if (tok && tok === token.get()) { store.set("gh-invalid", "1"); updateDot(); }
+    throw new Error("The GitHub token is invalid or expired. Update it in GitHub Connection.");
+  }
   if (r.status === 403 || r.status === 404) throw new Error("This token can't write to the repo. It needs Contents: Read and write on Personal-Browser-Dashboard.");
   if (r.status === 409) throw Object.assign(new Error("Someone else saved at the same time."), { conflict: true });
   throw new Error(`GitHub returned an error (${r.status}).`);
@@ -411,12 +459,16 @@ const mgr = {
   origName: new WeakMap(), // link object → its name when the panel opened
   confirming: false, // showing the "delete group?" bar
   iconTarget: null, // link whose icon is being picked
+  refetch: new Set(), // links whose icon is deleted on save, so the deploy downloads it again
+  picked: new Set(), // ticked links in the shown group, for moving or deleting several at once
 };
 
 function startEditing(json) {
   mgr.base = clone(json);
   mgr.work = clone(json);
   mgr.icons.clear();
+  mgr.refetch.clear();
+  mgr.picked.clear();
   mgr.origName = new WeakMap();
   for (const g of mgr.work.sections) for (const l of g.links) mgr.origName.set(l, l.name);
   mgr.selected = Math.max(0, Math.min(mgr.selected, mgr.work.sections.length - 1));
@@ -431,7 +483,7 @@ function openManager() {
   manager.showModal();
 }
 
-const isDirty = () => mgr.icons.size > 0 || serialize(mgr.work) !== serialize(mgr.base);
+const isDirty = () => mgr.icons.size > 0 || mgr.refetch.size > 0 || serialize(mgr.work) !== serialize(mgr.base);
 
 function setStatus(message, sticky = false) {
   const status = $("#mgr-status");
@@ -470,12 +522,12 @@ function renderGroupList() {
     b.type = "button";
     b.className = "group-item";
     const name = document.createElement("span");
-    name.textContent = g.name || "Untitled group";
+    name.textContent = `${g.emoji ? g.emoji + " " : ""}${g.name || "Untitled group"}`;
     const count = document.createElement("span");
     count.className = "count";
     count.textContent = g.links.length;
     b.append(name, count);
-    b.onclick = () => { mgr.selected = i; mgr.confirming = false; renderManager(); };
+    b.onclick = () => { mgr.selected = i; mgr.confirming = false; mgr.picked.clear(); renderManager(); };
     li.append(b, gripButton(`Reorder ${g.name || "group"}`));
     return li;
   }));
@@ -501,9 +553,23 @@ function renderGroupPane() {
     return;
   }
 
-  // Header: editable group name + delete
+  // Header: emoji + editable group name + delete
   const head = document.createElement("div");
   head.className = "pane-head";
+  const emoji = document.createElement("input");
+  emoji.className = "emoji-input";
+  emoji.value = g.emoji || "";
+  emoji.placeholder = "☺";
+  emoji.title = "Emoji shown next to the group in the sidebar (optional)";
+  emoji.setAttribute("aria-label", "Group emoji (optional)");
+  emoji.oninput = () => {
+    const e = firstGrapheme(emoji.value);
+    if (e) g.emoji = e;
+    else delete g.emoji;
+    emoji.value = e;
+    renderGroupList();
+    touched();
+  };
   const title = document.createElement("input");
   title.className = "title-input";
   title.value = g.name;
@@ -513,10 +579,13 @@ function renderGroupPane() {
   const tools = document.createElement("div");
   tools.className = "tools";
   tools.append(iconButton("trash", "Delete group", () => { mgr.confirming = true; renderGroupPane(); }, "danger"));
-  head.append(title, tools);
+  head.append(emoji, title, tools);
 
   const parts = [head];
   if (mgr.confirming) parts.push(deleteGroupBar(g));
+  const bulk = document.createElement("div");
+  bulk.id = "bulk-slot";
+  parts.push(bulk);
 
   const list = document.createElement("ul");
   list.className = "link-list";
@@ -544,6 +613,61 @@ function renderGroupPane() {
   };
   parts.push(add);
   pane.replaceChildren(...parts);
+  renderBulkBar();
+}
+
+// Shown while links are ticked: move them all to another group, or delete them.
+function renderBulkBar() {
+  const slot = $("#bulk-slot");
+  const g = mgr.work.sections[mgr.selected];
+  if (!slot || !g) return;
+  for (const l of mgr.picked) if (!g.links.includes(l)) mgr.picked.delete(l);
+  const n = mgr.picked.size;
+  if (!n) return void slot.replaceChildren();
+
+  const bar = document.createElement("div");
+  bar.className = "bulk-bar";
+  const count = document.createElement("strong");
+  count.textContent = `${n} selected`;
+  const all = document.createElement("button");
+  all.type = "button";
+  all.className = "linklike";
+  const everything = n === g.links.length;
+  all.textContent = everything ? "Select none" : "Select all";
+  all.onclick = () => {
+    if (everything) mgr.picked.clear();
+    else for (const l of g.links) mgr.picked.add(l);
+    renderGroupPane();
+  };
+  const others = mgr.work.sections.filter((s) => s !== g);
+  const move = document.createElement("select");
+  move.setAttribute("aria-label", "Move selected links to");
+  move.append(new Option("Move to…", ""), ...others.map((s, i) => new Option(s.name || "Untitled group", String(i))));
+  move.disabled = !others.length;
+  move.onchange = () => {
+    if (move.value === "") return;
+    const target = others[Number(move.value)];
+    const moving = g.links.filter((l) => mgr.picked.has(l)); // keeps their order
+    g.links = g.links.filter((l) => !mgr.picked.has(l));
+    target.links.push(...moving);
+    mgr.picked.clear();
+    renderManager();
+    toast(`Moved ${plural(moving.length, "link")} to ${target.name}. Save to apply.`);
+  };
+  const del = document.createElement("button");
+  del.type = "button";
+  del.className = "btn danger";
+  del.textContent = "Delete";
+  del.onclick = () => {
+    for (const l of mgr.picked) { mgr.icons.delete(l); mgr.refetch.delete(l); }
+    g.links = g.links.filter((l) => !mgr.picked.has(l));
+    mgr.picked.clear();
+    renderManager();
+  };
+  const spacer = document.createElement("span");
+  spacer.className = "spacer";
+  bar.append(count, all, spacer, move, del, iconButton("close", "Clear selection", () => { mgr.picked.clear(); renderGroupPane(); }));
+  slot.replaceChildren(bar);
 }
 
 function deleteGroupBar(g) {
@@ -575,7 +699,7 @@ function deleteGroupBar(g) {
   ok.textContent = "Delete Group";
   ok.onclick = () => {
     if (choice && choice.value !== "delete") others[Number(choice.value)].links.push(...g.links);
-    else for (const l of g.links) mgr.icons.delete(l);
+    else for (const l of g.links) { mgr.icons.delete(l); mgr.refetch.delete(l); }
     mgr.work.sections.splice(mgr.work.sections.indexOf(g), 1);
     mgr.selected = Math.max(0, Math.min(mgr.selected, mgr.work.sections.length - 1));
     mgr.confirming = false;
@@ -587,7 +711,19 @@ function deleteGroupBar(g) {
 
 function linkRow(g, link, i) {
   const li = document.createElement("li");
-  li.className = "link-row";
+  li.className = "link-row" + (mgr.refetch.has(link) ? " refetching" : "") + (mgr.picked.has(link) ? " picked" : "");
+
+  const check = document.createElement("input");
+  check.type = "checkbox";
+  check.className = "row-check";
+  check.checked = mgr.picked.has(link);
+  check.setAttribute("aria-label", `Select ${link.name || "new link"}`);
+  check.onchange = () => {
+    if (check.checked) mgr.picked.add(link);
+    else mgr.picked.delete(link);
+    li.classList.toggle("picked", check.checked);
+    renderBulkBar();
+  };
 
   const iconBtn = document.createElement("button");
   iconBtn.type = "button";
@@ -600,6 +736,13 @@ function linkRow(g, link, i) {
     : letterBox(link.name || "?");
   iconBtn.append(wrapIcon(box));
   iconBtn.onclick = () => { mgr.iconTarget = link; $("#mgr-file").click(); };
+  if (mgr.refetch.has(link)) {
+    iconBtn.title = "Icon will be downloaded again after saving";
+    const badge = document.createElement("span");
+    badge.className = "refetch-badge";
+    badge.append(svg(ICON.refresh));
+    iconBtn.append(badge);
+  }
 
   const fields = document.createElement("div");
   fields.className = "row-fields";
@@ -635,13 +778,26 @@ function linkRow(g, link, i) {
 
   const tools = document.createElement("div");
   tools.className = "tools";
+  // Only saved links have an icon to download again.
+  if (mgr.origName.has(link)) {
+    const on = mgr.refetch.has(link);
+    const again = iconButton("refresh", on ? "Keep the current icon" : "Download the icon again", () => {
+      if (mgr.refetch.has(link)) mgr.refetch.delete(link);
+      else { mgr.refetch.add(link); mgr.icons.delete(link); }
+      renderManager();
+    }, on ? "active" : "");
+    again.setAttribute("aria-pressed", on);
+    tools.append(again);
+  }
   tools.append(iconButton("trash", "Delete link", () => {
     g.links.splice(g.links.indexOf(link), 1);
     mgr.icons.delete(link);
+    mgr.refetch.delete(link);
+    mgr.picked.delete(link);
     renderManager();
   }, "danger"), gripButton(`Reorder ${link.name || "link"}`));
 
-  li.append(iconBtn, fields, move, tools);
+  li.append(check, iconBtn, fields, move, tools);
   return li;
 }
 
@@ -797,6 +953,7 @@ $("#mgr-file").addEventListener("change", async (e) => {
   if (!file || !mgr.iconTarget) return;
   try {
     mgr.icons.set(mgr.iconTarget, await iconFromFile(file));
+    mgr.refetch.delete(mgr.iconTarget);
     renderManager();
   } catch {
     toast("Couldn't read that image. Try a PNG, JPG or SVG.");
@@ -844,11 +1001,19 @@ $("#mgr-save").addEventListener("click", async () => {
 
   // Uploaded icons are stored under the link's final name; renamed links keep their old icon file.
   const uploads = [];
+  const stale = new Set(); // icon files to delete so the deploy fetches them again
   for (const g of work.sections) for (const l of g.links) {
     const orig = mgr.origName.get(l);
     if (mgr.icons.has(l)) {
       delete l.icon;
       uploads.push({ link: l, url: mgr.icons.get(l) });
+    } else if (mgr.refetch.has(l)) {
+      for (const p of [`icons/${slug(l.name)}.png`, `icons/${slug(orig)}.png`, isLocalPath(l.icon) ? l.icon : null]) {
+        if (p) stale.add(p).add(p.replace(/^icons\//, "icons/dark/"));
+      }
+      if (isLocalPath(l.icon)) delete l.icon; // an "icon" URL stays: it's where the download comes from
+      freshIcons.delete(slug(l.name));
+      loadedIcons.delete(slug(l.name));
     } else if (orig !== undefined && slug(orig) !== slug(l.name) && !l.icon && loadedIcons.has(slug(orig))) {
       l.icon = `icons/${slug(orig)}.png`;
     }
@@ -865,6 +1030,7 @@ $("#mgr-save").addEventListener("click", async () => {
     }
     for (const u of uploads) await putFile(`icons/${slug(u.link.name)}.png`, u.url.split(",")[1], `Upload icon: ${u.link.name}`);
     await putLinks(work, sha, "Update groups and links");
+    for (const p of stale) await deleteFile(p, `Re-download icon: ${p}`);
     for (const u of uploads) freshIcons.set(slug(u.link.name), u.url);
     data = clone(work);
     render();
@@ -878,7 +1044,7 @@ $("#mgr-save").addEventListener("click", async () => {
   }
   if (saved) {
     manager.close();
-    toast("Changes saved. Other devices update in about a minute.");
+    toast(stale.size ? "Saved. New icons appear after the deploy, in about a minute." : "Changes saved. Other devices update in about a minute.");
   }
 });
 
@@ -918,18 +1084,179 @@ manager.addEventListener("cancel", (e) => {
 });
 manager.addEventListener("click", (e) => { if (e.target === manager) closeManager(); });
 
+/* ---------- History: every commit of links.json, and restoring one ---------- */
+// Git already keeps every save. This lists them and puts an old version's groups and
+// links back as a new commit (nothing is erased, so a restore can be undone the same way).
+
+const historyDialog = $("#history-dialog");
+const hist = { commits: [], picked: -1, version: null, loading: 0 };
+
+const relTime = (iso) => {
+  const s = (Date.now() - new Date(iso)) / 1000;
+  const fmt = new Intl.RelativeTimeFormat(undefined, { numeric: "auto" });
+  for (const [unit, size] of [["year", 31_536_000], ["month", 2_592_000], ["week", 604_800], ["day", 86_400], ["hour", 3600], ["minute", 60]]) {
+    if (s >= size) return fmt.format(-Math.floor(s / size), unit);
+  }
+  return "just now";
+};
+
+async function openHistory() {
+  if (isDirty() && !confirm("Restoring replaces your unsaved changes in this panel. Continue?")) return;
+  hist.picked = -1;
+  hist.version = null;
+  $("#hist-all").href = `https://github.com/${REPO}/commits/${BRANCH}/links.json`;
+  $("#hist-restore").disabled = true;
+  $("#hist-list").replaceChildren();
+  $("#hist-status").textContent = "Loading…";
+  historyDialog.showModal();
+  try {
+    // Public repo: works without a token too (GitHub allows 60 of these an hour per network).
+    const list = await ghFetch(`https://api.github.com/repos/${REPO}/commits?path=links.json&sha=${BRANCH}&per_page=30`);
+    hist.commits = (list || []).map((c) => ({
+      sha: c.sha,
+      message: c.commit.message.split("\n")[0],
+      date: c.commit.committer?.date || c.commit.author?.date,
+    }));
+    $("#hist-status").textContent = hist.commits.length ? "" : "No saves found.";
+    renderHistory();
+  } catch (err) {
+    // Without a token GitHub allows 60 requests an hour, and answers 403 past that.
+    $("#hist-status").textContent = err.message.startsWith("This token can't write")
+      ? "GitHub is limiting requests right now. Try again later, or connect GitHub." : err.message;
+  }
+}
+
+function renderHistory() {
+  $("#hist-list").replaceChildren(...hist.commits.map((c, i) => {
+    const li = document.createElement("li");
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "hist-item" + (i === hist.picked ? " selected" : "");
+    b.setAttribute("aria-pressed", i === hist.picked);
+    const top = document.createElement("span");
+    top.className = "hist-msg";
+    top.textContent = i === 0 ? `${c.message} · current` : c.message;
+    const when = document.createElement("span");
+    when.className = "hist-when";
+    when.textContent = relTime(c.date);
+    when.title = new Date(c.date).toLocaleString();
+    b.append(top, when);
+    b.onclick = () => pickVersion(i);
+    li.append(b);
+    if (i === hist.picked) {
+      const detail = document.createElement("div");
+      detail.className = "hist-detail";
+      detail.id = "hist-detail";
+      li.append(detail);
+    }
+    return li;
+  }));
+}
+
+async function pickVersion(i) {
+  hist.picked = i;
+  hist.version = null;
+  const ticket = ++hist.loading;
+  $("#hist-restore").disabled = true;
+  renderHistory();
+  const detail = $("#hist-detail");
+  if (i === 0) return void (detail.textContent = "This is what the dashboard shows now.");
+  detail.textContent = "Comparing…";
+  try {
+    // raw.githubusercontent serves any old version of a file without using the API limit.
+    const r = await fetch(`https://raw.githubusercontent.com/${REPO}/${hist.commits[i].sha}/links.json`, { cache: "force-cache" });
+    if (!r.ok) throw new Error();
+    const old = await r.json();
+    if (ticket !== hist.loading) return;
+    hist.version = old;
+    const changes = describeRestore(data, old);
+    detail.replaceChildren(...(changes.length ? changes : ["Same groups and links as now."]).map((t) => {
+      const p = document.createElement("p");
+      p.textContent = t;
+      return p;
+    }));
+    $("#hist-restore").disabled = !changes.length;
+  } catch {
+    if (ticket === hist.loading) detail.textContent = "Couldn't load that version.";
+  }
+}
+
+// What restoring `old` would do to `now`, in plain words.
+function describeRestore(now, old) {
+  const where = (d) => new Map(d.sections.flatMap((s) => s.links.map((l) => [slug(l.name), { name: l.name, group: s.name }])));
+  const a = where(now), b = where(old);
+  const names = (list) => list.slice(0, 6).join(", ") + (list.length > 6 ? ` and ${list.length - 6} more` : "");
+  const out = [];
+  const back = [...b.keys()].filter((k) => !a.has(k)).map((k) => b.get(k).name);
+  const gone = [...a.keys()].filter((k) => !b.has(k)).map((k) => a.get(k).name);
+  const moved = [...b.keys()].filter((k) => a.has(k) && a.get(k).group !== b.get(k).group).map((k) => `${b.get(k).name} → ${b.get(k).group}`);
+  const groupsNow = new Set(now.sections.map((s) => s.name)), groupsOld = new Set(old.sections.map((s) => s.name));
+  const gBack = [...groupsOld].filter((g) => !groupsNow.has(g)), gGone = [...groupsNow].filter((g) => !groupsOld.has(g));
+  if (back.length) out.push(`Brings back ${plural(back.length, "link")}: ${names(back)}`);
+  if (gone.length) out.push(`Removes ${plural(gone.length, "link")}: ${names(gone)}`);
+  if (moved.length) out.push(`Moves ${plural(moved.length, "link")}: ${names(moved)}`);
+  if (gBack.length) out.push(`Groups back: ${names(gBack)}`);
+  if (gGone.length) out.push(`Groups removed: ${names(gGone)}`);
+  if (!out.length && JSON.stringify(now.sections) !== JSON.stringify(old.sections)) out.push("Changes order, names, addresses or emoji.");
+  return out;
+}
+
+$("#hist-restore").addEventListener("click", async () => {
+  const c = hist.commits[hist.picked], old = hist.version;
+  if (!c || !old) return;
+  const btn = $("#hist-restore");
+  setDisabled(historyDialog, true);
+  $("#hist-status").textContent = "Restoring…";
+  try {
+    const when = new Date(c.date).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+    await save((d) => { d.sections = old.sections; }, `Restore groups and links from ${when}`);
+    startEditing(data);
+    renderManager();
+    historyDialog.close();
+    toast("Restored. Other devices update in about a minute.");
+  } catch (err) {
+    $("#hist-status").textContent = err.message;
+  } finally {
+    setDisabled(historyDialog, false);
+    btn.disabled = !hist.version;
+  }
+});
+
+$("#mgr-history").addEventListener("click", openHistory);
+
 /* ---------- GitHub Connection ---------- */
 
 const githubDialog = $("#github-dialog");
 
+// The dot's colour and the words for it, from tokenHealth().
+function healthText() {
+  const left = daysLeft();
+  const when = left === 0 ? "today" : left === 1 ? "tomorrow" : `in ${left} days`;
+  switch (tokenHealth()) {
+    case "off": return ["Not connected", "Connect to add and manage links from this browser. Viewing the dashboard doesn't need this."];
+    case "bad": return [left !== null && left < 0 ? "Token expired" : "Token rejected",
+      "GitHub no longer accepts this token. Make a new one, then Disconnect and connect with it."];
+    case "warn": return [`Token expires ${when}`, "Make a new token before then, then Disconnect and connect with it."];
+    default: return ["Connected", left === null ? "Adding and managing links is enabled in this browser."
+      : `Adding and managing links is enabled in this browser. The token expires ${when}.`];
+  }
+}
+
+function setDotState(el) {
+  const h = tokenHealth();
+  for (const c of ["on", "warn", "bad"]) el.classList.toggle(c, h === c);
+}
+
 function renderGithub() {
   const t = token.get();
   const on = !!t;
-  $("#gh-card-dot").classList.toggle("on", on);
-  $("#gh-state").textContent = on ? "Connected" : "Not connected";
-  $("#gh-detail").textContent = on
-    ? "Adding and managing links is enabled in this browser."
-    : "Connect to add and manage links from this browser. Viewing the dashboard doesn't need this.";
+  setDotState($("#gh-card-dot"));
+  const [state, detail] = healthText();
+  $("#gh-state").textContent = state;
+  $("#gh-detail").textContent = detail;
+  $("#gh-expiry").hidden = !on;
+  $("#gh-expiry").value = token.expiry();
+  $("#gh-expiry-none").hidden = on;
   const repo = $("#gh-repo");
   repo.href = `https://github.com/${REPO}`;
   repo.textContent = REPO;
@@ -944,14 +1271,19 @@ function renderGithub() {
 }
 
 function updateDot() {
-  const on = !!token.get();
-  $("#gh-dot").classList.toggle("on", on);
-  $("#github-btn").title = on ? "GitHub: connected" : "GitHub: not connected";
+  setDotState($("#gh-dot"));
+  $("#github-btn").title = `GitHub: ${healthText()[0].toLowerCase()}`;
 }
+
+$("#gh-expiry").addEventListener("change", (e) => {
+  token.setExpiry(e.target.value);
+  renderGithub();
+});
 
 function openGithub(message = "") {
   renderGithub();
   $("#f-token").value = "";
+  $("#f-expiry").value = "";
   $("#gh-status").textContent = message;
   $("#gh-checks").hidden = true;
   githubDialog.showModal();
@@ -988,6 +1320,7 @@ $("#gh-form").addEventListener("submit", async (e) => {
   try {
     const { login } = await checkToken(t);
     token.set(t, login);
+    token.setExpiry($("#f-expiry").value);
     status.textContent = "";
     renderGithub();
     toast(login ? `Connected as @${login}` : "Connected");
@@ -1003,7 +1336,7 @@ $("#gh-test").addEventListener("click", async () => {
   setDisabled(githubDialog, true);
   try {
     const { login, ms } = await checkToken(token.get());
-    if (login) token.set(token.get(), login);
+    token.set(token.get(), login || token.login());
     renderGithub();
     showChecks([
       [true, `Token is valid${login ? ` (@${login})` : ""}`],
@@ -1296,13 +1629,165 @@ $("#view-btn").addEventListener("click", () => {
 });
 applyView();
 
+// Open links: in this tab (start page) or a new tab. Saved per browser.
+const TAB_ICON = {
+  same: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M8 12h7M12 9l3 3-3 3"/>',
+  new: '<path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+};
+
+function applyTarget() {
+  const name = linkTarget === "new" ? "New tab" : "Same tab";
+  $("#tab-btn-svg").innerHTML = TAB_ICON[linkTarget];
+  $("#tab-btn-label").textContent = `Open: ${name}`;
+  const label = `Links open in ${linkTarget === "new" ? "a new tab" : "this tab"}. Click to change.`;
+  $("#tab-btn").setAttribute("aria-label", label);
+  $("#tab-btn").title = label;
+  for (const a of document.querySelectorAll("#sections .tile")) {
+    if (linkTarget === "new") a.target = "_blank";
+    else a.removeAttribute("target");
+  }
+  $("#launch-alt").textContent = linkTarget === "new" ? "this tab" : "new tab";
+}
+
+$("#tab-btn").addEventListener("click", () => {
+  linkTarget = linkTarget === "new" ? "same" : "new";
+  store.set("link-target", linkTarget);
+  applyTarget();
+  toast(linkTarget === "new" ? "Links open in a new tab" : "Links open in this tab");
+});
+applyTarget();
+
 $("#github-btn").addEventListener("click", () => openGithub());
 
-for (const dialog of [githubDialog, wallpaperDialog]) {
+for (const dialog of [githubDialog, wallpaperDialog, historyDialog]) {
   dialog.addEventListener("click", (e) => {
     if (e.target === dialog || e.target.closest("[data-close]")) dialog.close();
   });
 }
+
+/* ---------- Quick launch ---------- */
+// ⌘K / Ctrl+K, "/", or just start typing a name: a short list of matching links, Enter opens one.
+
+const launcher = $("#launcher");
+const launch = { hits: [], index: 0 };
+
+// Lower is better: name starts with it → a word starts with it → name contains it →
+// address starts with it → its letters appear in order (e.g. "ytm" → YouTube Music).
+function matchScore(q, link) {
+  const name = link.name.toLowerCase();
+  let host = "";
+  try { host = new URL(link.url).hostname.replace(/^www\./, ""); } catch {}
+  if (name.startsWith(q)) return 0;
+  if (name.split(/[^a-z0-9]+/).some((w) => w.startsWith(q))) return 1;
+  if (name.includes(q)) return 2;
+  if (host.split(".").some((part) => part.startsWith(q))) return 3; // "chase" → chase.com, not "ytm" → paytm.com
+  let i = 0;
+  for (const ch of name) if (ch === q[i]) i++;
+  return i === q.length ? 4 : -1;
+}
+
+function findLinks(query) {
+  const q = query.trim().toLowerCase();
+  const all = data.sections.flatMap((s) => s.links.map((link) => ({ link, group: s.name })));
+  if (!q) return all;
+  return all
+    .map((hit, order) => ({ ...hit, score: matchScore(q, hit.link), order }))
+    .filter((h) => h.score >= 0)
+    .sort((a, b) => a.score - b.score || a.order - b.order);
+}
+
+function renderLaunch() {
+  const list = $("#launch-list");
+  launch.hits = findLinks($("#launch-input").value);
+  launch.index = Math.min(launch.index, Math.max(0, launch.hits.length - 1));
+  if (!launch.hits.length) {
+    const li = document.createElement("li");
+    li.className = "launch-empty";
+    li.textContent = "No links match.";
+    list.replaceChildren(li);
+    $("#launch-input").removeAttribute("aria-activedescendant");
+    return;
+  }
+  list.replaceChildren(...launch.hits.map((h, i) => {
+    const li = document.createElement("li");
+    li.id = `launch-${i}`;
+    li.setAttribute("role", "option");
+    li.className = "launch-item";
+    li.setAttribute("aria-selected", i === launch.index);
+    const name = document.createElement("span");
+    name.className = "launch-name";
+    name.textContent = h.link.name;
+    const group = document.createElement("span");
+    group.className = "launch-group";
+    group.textContent = h.group;
+    li.append(wrapIcon(iconBox(h.link)), name, group);
+    li.onpointermove = () => { if (launch.index !== i) { launch.index = i; markLaunch(); } };
+    li.onclick = (e) => openHit(i, e.shiftKey || e.metaKey || e.ctrlKey);
+    return li;
+  }));
+  markLaunch();
+}
+
+function markLaunch() {
+  for (const [i, li] of [...$("#launch-list").children].entries()) {
+    const on = i === launch.index;
+    li.setAttribute("aria-selected", on);
+    if (on) li.scrollIntoView({ block: "nearest" });
+  }
+  $("#launch-input").setAttribute("aria-activedescendant", `launch-${launch.index}`);
+}
+
+// `other` (Shift/⌘) flips the tab setting for this one link.
+function openHit(i, other = false) {
+  const hit = launch.hits[i];
+  if (!hit) return;
+  const newTab = (linkTarget === "new") !== other;
+  launcher.close();
+  if (newTab) window.open(hit.link.url, "_blank", "noopener,noreferrer");
+  else location.href = hit.link.url;
+}
+
+function openLauncher(text = "") {
+  if (!data || launcher.open) return;
+  $("#launch-input").value = text;
+  launch.index = 0;
+  renderLaunch();
+  launcher.showModal();
+  $("#launch-input").focus();
+}
+
+$("#launch-input").addEventListener("input", () => { launch.index = 0; renderLaunch(); });
+$("#launch-input").addEventListener("keydown", (e) => {
+  const n = launch.hits.length;
+  if (e.key === "ArrowDown" || (e.key === "n" && e.ctrlKey)) { e.preventDefault(); if (n) { launch.index = (launch.index + 1) % n; markLaunch(); } }
+  else if (e.key === "ArrowUp" || (e.key === "p" && e.ctrlKey)) { e.preventDefault(); if (n) { launch.index = (launch.index - 1 + n) % n; markLaunch(); } }
+  else if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); openHit(launch.index, e.shiftKey || e.metaKey || e.ctrlKey); }
+});
+launcher.addEventListener("click", (e) => { if (e.target === launcher) launcher.close(); });
+
+document.addEventListener("keydown", (e) => {
+  if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
+    e.preventDefault();
+    if (launcher.open) launcher.close();
+    else if (!document.querySelector("dialog[open]")) openLauncher();
+    return;
+  }
+  if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !data) return;
+  if (document.querySelector("dialog[open]")) return;
+  const field = e.target.closest?.("input, textarea, select, [contenteditable]");
+  if (field && !field.closest("dialog:not([open])")) return; // typing in a field (focus can linger in a closed dialog)
+  if (e.key === "/") {
+    e.preventDefault();
+    openLauncher();
+  } else if (/^[1-9]$/.test(e.key)) {
+    // 1–9 jump to that group in the sidebar.
+    const group = data.sections[Number(e.key) - 1];
+    if (group) location.hash = slug(group.name);
+  } else if (/^\p{L}$/u.test(e.key)) {
+    e.preventDefault();
+    openLauncher(e.key);
+  }
+});
 
 /* ---------- Greeting + clock ---------- */
 
@@ -1341,6 +1826,15 @@ document.addEventListener("visibilitychange", () => { if (!document.hidden) star
 startClock();
 
 updateDot();
+
+// A week before the token runs out (or once it stops working), say so once a day.
+if (["warn", "bad"].includes(tokenHealth())) {
+  const today = new Date().toDateString();
+  if (store.get("gh-warned") !== today) {
+    store.set("gh-warned", today);
+    setTimeout(() => toast(`GitHub: ${healthText()[0].toLowerCase()}. Renew it in GitHub Connection.`), 600);
+  }
+}
 
 // ?v=dev is replaced with the commit id on deploy, so edits show up right away.
 fetch("links.json?v=dev")

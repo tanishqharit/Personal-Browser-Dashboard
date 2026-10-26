@@ -1,0 +1,45 @@
+name: Check links
+
+# Every Monday morning (UTC), or by hand from the Actions tab
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+# issues: write lets it open and close the "Broken links" issue
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    name: Check every link in links.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check links
+        run: python3 scripts/check_links.py
+
+      - name: Show the report on the run page
+        run: cat report.md >> "$GITHUB_STEP_SUMMARY"
+
+      # One issue at a time, labelled "broken-links": opened or updated while links are
+      # broken, closed once they all work. GitHub emails you about it.
+      - name: Open, update or close the issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create broken-links --color d73a4a --description "Found by the weekly link check" 2>/dev/null || true
+          open=$(gh issue list --label broken-links --state open --json number --jq '.[0].number')
+          broken=$(cat broken.txt)
+          if [ "$broken" -gt 0 ]; then
+            title="Broken links: $broken"
+            if [ -n "$open" ]; then
+              gh issue edit "$open" --title "$title" --body-file report.md
+            else
+              gh issue create --title "$title" --label broken-links --body-file report.md
+            fi
+          elif [ -n "$open" ]; then
+            gh issue close "$open" --comment "All links work again."
+          fi
