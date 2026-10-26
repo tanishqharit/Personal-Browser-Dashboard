@@ -8,7 +8,9 @@
         {"name": "Gmail", "url": "https://mail.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png"]},
         {"name": "YouTube", "url": "https://www.youtube.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/YouTube_full-color_icon_(2017).svg"]},
         {"name": "YouTube Music", "url": "https://music.youtube.com"},
-        {"name": "iCloud", "url": "https://www.icloud.com"}
+        {"name": "iCloud", "url": "https://www.icloud.com"},
+        {"name": "Netflix", "url": "https://www.netflix.com"},
+        {"name": "IMDb", "url": "https://www.imdb.com"}
       ]
     },
     {
@@ -103,15 +105,6 @@
       ]
     },
     {
-      "name": "Movies & TV",
-      "links": [
-        {"name": "Netflix", "url": "https://www.netflix.com"},
-        {"name": "IMDb", "url": "https://www.imdb.com"},
-        {"name": "AMC Theatres", "url": "https://www.amctheatres.com"},
-        {"name": "Regal", "url": "https://www.regmovies.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Regal_Cinemas_logo_2018.svg"]}
-      ]
-    },
-    {
       "name": "Events & Tickets",
       "links": [
         {"name": "Ticketmaster", "url": "https://www.ticketmaster.com"},
@@ -123,7 +116,9 @@
         {"name": "Shotgun", "url": "https://shotgun.live"},
         {"name": "Eventbrite", "url": "https://www.eventbrite.com"},
         {"name": "Meetup", "url": "https://www.meetup.com"},
-        {"name": "Luma", "url": "https://luma.com"}
+        {"name": "Luma", "url": "https://luma.com"},
+        {"name": "Regal", "url": "https://www.regmovies.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Regal_Cinemas_logo_2018.svg"]},
+        {"name": "AMC Theatres", "url": "https://www.amctheatres.com"}
       ]
     }
   ]
