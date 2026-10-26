@@ -27,6 +27,8 @@ The bottom of the sidebar has three tools (icons only on a phone):
 - **Wallpaper**: upload from your device (resized to 2560px JPEG, saved in `wallpapers/`) or use an
   image URL (stays hosted there). Saved in `links.json`, so it's the same on every device until you change
   or remove it. The repo is public, so the wallpaper is too.
+- **View**: switches between **Icons** (home-screen grid) and **List** (rows with name and address).
+  Saved per browser.
 - **Icons**: toggles the icon style between **Dark** (default) and **Light**. Saved per browser, so each
   device can have its own.
 - **GitHub Connection**: connect or disconnect this browser, see the account and repo, and test the

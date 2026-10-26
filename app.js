@@ -143,7 +143,14 @@ function linkTile(link) {
   const label = document.createElement("span");
   label.className = "label";
   label.textContent = link.name;
-  a.append(wrapIcon(iconBox(link)), label);
+  // List view also shows where the link goes (hidden in icon view).
+  const host = document.createElement("span");
+  host.className = "host";
+  try { host.textContent = new URL(link.url).hostname.replace(/^www\./, ""); } catch {}
+  const text = document.createElement("span");
+  text.className = "tile-text";
+  text.append(label, host);
+  a.append(wrapIcon(iconBox(link)), text);
   return a;
 }
 
@@ -1262,6 +1269,33 @@ $("#icons-btn").addEventListener("click", () => {
   toast(`${MODE_NAME[iconMode]} icons`);
 });
 updateIconsBtn();
+
+// View: "icons" (home-screen grid) or "list" (rows with name + address). Saved per browser.
+const VIEW_ICON = {
+  icons: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+  list: '<rect x="4" y="5" width="4" height="4" rx="1"/><rect x="4" y="15" width="4" height="4" rx="1"/><path d="M11 7h9M11 17h9"/>',
+};
+let viewMode = (() => { try { return localStorage.getItem("view-mode"); } catch { return null; } })();
+if (!(viewMode in VIEW_ICON)) viewMode = "icons";
+
+function applyView() {
+  document.body.classList.toggle("list-view", viewMode === "list");
+  const name = viewMode === "list" ? "List" : "Icons";
+  $("#view-btn-svg").innerHTML = VIEW_ICON[viewMode];
+  $("#view-btn-label").textContent = `View: ${name}`;
+  const label = `View: ${name}. Click for ${viewMode === "list" ? "icons" : "list"}.`;
+  $("#view-btn").setAttribute("aria-label", label);
+  $("#view-btn").title = label;
+}
+
+$("#view-btn").addEventListener("click", () => {
+  viewMode = viewMode === "list" ? "icons" : "list";
+  try { localStorage.setItem("view-mode", viewMode); } catch {}
+  applyView();
+  toast(viewMode === "list" ? "List view" : "Icon view");
+});
+applyView();
+
 $("#github-btn").addEventListener("click", () => openGithub());
 
 for (const dialog of [githubDialog, wallpaperDialog]) {
