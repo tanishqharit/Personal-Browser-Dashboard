@@ -10,7 +10,10 @@
         {"name": "YouTube Music", "url": "https://music.youtube.com"},
         {"name": "iCloud", "url": "https://www.icloud.com"},
         {"name": "Netflix", "url": "https://www.netflix.com"},
-        {"name": "IMDb", "url": "https://www.imdb.com"}
+        {"name": "IMDb", "url": "https://www.imdb.com"},
+        {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
+        {"name": "Walmart", "url": "https://www.walmart.com"},
+        {"name": "UNiDAYS", "url": "https://www.myunidays.com"}
       ]
     },
     {
@@ -41,16 +44,6 @@
       ]
     },
     {
-      "name": "Social",
-      "links": [
-        {"name": "Reddit", "url": "https://www.reddit.com"},
-        {"name": "X", "url": "https://x.com"},
-        {"name": "Discord", "url": "https://discord.com/app"},
-        {"name": "Instagram", "url": "https://www.instagram.com"},
-        {"name": "Facebook", "url": "https://www.facebook.com"}
-      ]
-    },
-    {
       "name": "AI Tools & Chat Bots",
       "links": [
         {"name": "Claude", "url": "https://claude.ai"},
@@ -67,12 +60,13 @@
       ]
     },
     {
-      "name": "Shopping",
+      "name": "Social",
       "links": [
-        {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
-        {"name": "Walmart", "url": "https://www.walmart.com"},
-        {"name": "UNiDAYS", "url": "https://www.myunidays.com"},
-        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]}
+        {"name": "Reddit", "url": "https://www.reddit.com"},
+        {"name": "X", "url": "https://x.com"},
+        {"name": "Discord", "url": "https://discord.com/app"},
+        {"name": "Instagram", "url": "https://www.instagram.com"},
+        {"name": "Facebook", "url": "https://www.facebook.com"}
       ]
     },
     {
@@ -87,7 +81,8 @@
         {"name": "Columbia", "url": "https://www.columbia.com"},
         {"name": "UNIQLO", "url": "https://www.uniqlo.com/us"},
         {"name": "Zara", "url": "https://www.zara.com"},
-        {"name": "H&M", "url": "https://www2.hm.com/en_us"}
+        {"name": "H&M", "url": "https://www2.hm.com/en_us"},
+        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]}
       ]
     },
     {
