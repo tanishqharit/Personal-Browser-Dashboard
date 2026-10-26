@@ -1032,29 +1032,43 @@ function wallpaperSources(src) {
   return src.startsWith("http") ? [src] : [src + VERSION, RAW + src + VERSION];
 }
 
+// The wallpaper is painted on <html> (the page canvas), not on a fixed layer: iOS Safari
+// draws the canvas under its status bar and toolbar, but clips fixed elements above them.
+const themeColor = document.querySelector('meta[name="theme-color"]');
+let wallpaperShown = "";
+
+function setWallpaperLayer(url) {
+  const root = document.documentElement;
+  const on = Boolean(url);
+  root.classList.toggle("has-wallpaper", on);
+  document.body.classList.toggle("has-wallpaper", on);
+  if (on) root.style.setProperty("--wallpaper", `url("${url.replace(/"/g, "%22")}")`);
+  else root.style.removeProperty("--wallpaper");
+  // A theme-color makes Safari paint a solid bar over the wallpaper.
+  if (on) themeColor.remove();
+  else if (!themeColor.isConnected) document.head.append(themeColor);
+}
+
 function applyWallpaper() {
   const src = data.wallpaper;
-  const box = $("#backdrop"), img = $("#wallpaper-img");
   if (!src) {
-    box.hidden = true;
-    document.body.classList.remove("has-wallpaper");
-    img.removeAttribute("src");
-    img.dataset.src = "";
+    wallpaperShown = "";
+    setWallpaperLayer(null);
     return;
   }
-  if (img.dataset.src === src) return; // already showing it
-  img.dataset.src = src;
+  if (wallpaperShown === src) return; // already showing it
+  wallpaperShown = src;
+  // Load it first, so a broken URL never leaves light text on a blank page.
   const sources = wallpaperSources(src);
-  img.onload = () => {
-    box.hidden = false;
-    document.body.classList.add("has-wallpaper");
-  };
-  img.onerror = () => {
+  const probe = new Image();
+  probe.referrerPolicy = "no-referrer";
+  probe.onload = () => { if (wallpaperShown === src) setWallpaperLayer(probe.src); };
+  probe.onerror = () => {
     sources.shift();
-    if (sources.length) img.src = sources[0];
-    else { box.hidden = true; document.body.classList.remove("has-wallpaper"); }
+    if (sources.length) probe.src = sources[0];
+    else if (wallpaperShown === src) setWallpaperLayer(null);
   };
-  img.src = sources[0];
+  probe.src = sources[0];
 }
 
 // Big photos are scaled down to 2560px on the long side and saved as JPEG.

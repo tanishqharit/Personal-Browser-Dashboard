@@ -436,18 +436,22 @@ dialog a { color: var(--accent); }
 
 /* ---------- Wallpaper ---------- */
 
-#backdrop { position: fixed; inset: 0; z-index: -1; background: #000; }
-#backdrop img { width: 100%; height: 100%; object-fit: cover; }
-/* Soft dark gradient so white text stays readable on any photo */
-#backdrop::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(180deg, rgb(0 0 0 / .55) 0%, rgb(0 0 0 / .3) 45%, rgb(0 0 0 / .5) 100%);
+/* Painted on <html>, the page canvas, which iOS Safari draws under its status bar and
+   toolbar (it clips fixed layers above them). 100lvh = the full screen height including
+   the area behind Safari's bars. A soft dark gradient keeps white text readable. */
+html.has-wallpaper {
+  min-height: 100lvh;
+  background-color: #000;
+  background-image:
+    linear-gradient(180deg, rgb(0 0 0 / .55) 0%, rgb(0 0 0 / .3) 45%, rgb(0 0 0 / .5) 100%),
+    var(--wallpaper);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Over a photo the page always uses light text, in light mode too. Dialogs keep their own colors. */
-body.has-wallpaper { background: #000; }
+body.has-wallpaper { background: transparent; } /* let the canvas wallpaper show */
 body.has-wallpaper :is(.hello, #sidebar, main) {
   --text: #fff;
   --muted: rgb(255 255 255 / .72);
