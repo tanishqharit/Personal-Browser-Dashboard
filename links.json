@@ -1,6 +1,7 @@
 {
   "title": "Dashboard",
   "wallpaper": "wallpapers/wallpaper-1792875738692.jpg",
+  "wallpaperDim": 45,
   "sections": [
     {
       "name": "Favorites",
