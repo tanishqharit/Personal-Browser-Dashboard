@@ -7,17 +7,17 @@
       "name": "Favorites",
       "links": [
         {"name": "Gmail", "url": "https://mail.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png"]},
+        {"name": "iCloud", "url": "https://www.icloud.com"},
         {"name": "YouTube", "url": "https://www.youtube.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/YouTube_full-color_icon_(2017).svg"]},
         {"name": "YouTube Music", "url": "https://music.youtube.com"},
-        {"name": "iCloud", "url": "https://www.icloud.com"},
-        {"name": "Netflix", "url": "https://www.netflix.com"},
+        {"name": "YTM Mixes", "url": "https://music.youtube.com/mixed_for_you"},
+        {"name": "YTM Playlists", "url": "https://music.youtube.com/library/playlists"},
         {"name": "IMDb", "url": "https://www.imdb.com"},
+        {"name": "Netflix", "url": "https://www.netflix.com"},
         {"name": "Amazon", "url": "https://www.amazon.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Amazon_icon.svg"]},
         {"name": "Walmart", "url": "https://www.walmart.com"},
         {"name": "UNiDAYS", "url": "https://www.myunidays.com"},
-        {"name": "Amazon Music", "url": "https://music.amazon.in/my/library"},
-        {"name": "YTM Mixes", "url": "https://music.youtube.com/mixed_for_you"},
-        {"name": "YTM Playlists", "url": "https://music.youtube.com/library/playlists"}
+        {"name": "Amazon Music", "url": "https://music.amazon.in/my/library"}
       ]
     },
     {
