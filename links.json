@@ -86,7 +86,15 @@
         {"name": "UNIQLO", "url": "https://www.uniqlo.com/us"},
         {"name": "Zara", "url": "https://www.zara.com"},
         {"name": "H&M", "url": "https://www2.hm.com/en_us"},
-        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]}
+        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]},
+        {"name": "New Balance", "url": "https://www.newbalance.com"},
+        {"name": "ASICS", "url": "https://www.asics.com/us/en-us/"},
+        {"name": "Levi's", "url": "https://www.levi.com"},
+        {"name": "Abercrombie", "url": "https://www.abercrombie.com"},
+        {"name": "American Eagle", "url": "https://www.ae.com"},
+        {"name": "Gap", "url": "https://www.gap.com"},
+        {"name": "Nordstrom Rack", "url": "https://www.nordstromrack.com"},
+        {"name": "Macy's", "url": "https://www.macys.com"}
       ]
     },
     {
@@ -100,7 +108,13 @@
         {"name": "Razer", "url": "https://www.razer.com"},
         {"name": "ROG", "url": "https://rog.asus.com"},
         {"name": "PlayStation", "url": "https://www.playstation.com"},
-        {"name": "Xbox", "url": "https://www.xbox.com"}
+        {"name": "Xbox", "url": "https://www.xbox.com"},
+        {"name": "Nintendo", "url": "https://www.nintendo.com"},
+        {"name": "Steam", "url": "https://store.steampowered.com"},
+        {"name": "Epic Games", "url": "https://store.epicgames.com"},
+        {"name": "Logitech", "url": "https://www.logitech.com"},
+        {"name": "Back Market", "url": "https://www.backmarket.com"},
+        {"name": "BuyBackTronics", "url": "https://www.buybacktronics.com"}
       ]
     },
     {
