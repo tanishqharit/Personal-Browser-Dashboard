@@ -134,6 +134,12 @@
         {"name": "Nordstrom Rack", "url": "https://www.nordstromrack.com"},
         {"name": "Macy's", "url": "https://www.macys.com"}
       ]
+    },
+    {
+      "name": "Archive",
+      "links": [
+        {"name": "DTU", "url": "https://www.dtu.ac.in/"}
+      ]
     }
   ]
 }
