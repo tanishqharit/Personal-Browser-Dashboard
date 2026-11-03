@@ -5,6 +5,7 @@
   "sections": [
     {
       "name": "Favorites",
+      "emoji": "🩳",
       "links": [
         {"name": "Gmail", "url": "https://mail.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Gmail_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/gmail_2020q4_48dp.png"]},
         {"name": "iCloud", "url": "https://www.icloud.com"},
