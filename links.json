@@ -22,6 +22,27 @@
       ]
     },
     {
+      "name": "Personal",
+      "links": [
+        {"name": "GitHub", "url": "https://github.com"},
+        {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
+        {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
+        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]},
+        {"name": "Google Account", "url": "https://myaccount.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Favicon_2025.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Google_%22G%22_logo.svg"]},
+        {"name": "Microsoft Account", "url": "https://account.microsoft.com"}
+      ]
+    },
+    {
+      "name": "Social",
+      "links": [
+        {"name": "Reddit", "url": "https://www.reddit.com"},
+        {"name": "X", "url": "https://x.com"},
+        {"name": "Discord", "url": "https://discord.com/app"},
+        {"name": "Instagram", "url": "https://www.instagram.com"},
+        {"name": "Facebook", "url": "https://www.facebook.com"}
+      ]
+    },
+    {
       "name": "Personal Finances",
       "links": [
         {"name": "Chase", "url": "https://www.chase.com"},
@@ -38,17 +59,6 @@
       ]
     },
     {
-      "name": "Personal",
-      "links": [
-        {"name": "GitHub", "url": "https://github.com"},
-        {"name": "Portfolio", "url": "https://tanishqharit.github.io", "icon": "https://github.com/tanishqharit.png?size=460"},
-        {"name": "Google Drive", "url": "https://drive.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Drive_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/drive_2020q4_48dp.png"]},
-        {"name": "Google Calendar", "url": "https://calendar.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Calendar_icon_(2020).svg", "https://www.gstatic.com/images/branding/product/2x/calendar_2020q4_48dp.png"]},
-        {"name": "Google Account", "url": "https://myaccount.google.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Google_Favicon_2025.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Google_%22G%22_logo.svg"]},
-        {"name": "Microsoft Account", "url": "https://account.microsoft.com"}
-      ]
-    },
-    {
       "name": "AI Tools & Chat Bots",
       "links": [
         {"name": "Claude", "url": "https://claude.ai"},
@@ -62,40 +72,6 @@
         {"name": "Botpress", "url": "https://botpress.com"},
         {"name": "Zapier", "url": "https://zapier.com"},
         {"name": "Apify", "url": "https://apify.com"}
-      ]
-    },
-    {
-      "name": "Social",
-      "links": [
-        {"name": "Reddit", "url": "https://www.reddit.com"},
-        {"name": "X", "url": "https://x.com"},
-        {"name": "Discord", "url": "https://discord.com/app"},
-        {"name": "Instagram", "url": "https://www.instagram.com"},
-        {"name": "Facebook", "url": "https://www.facebook.com"}
-      ]
-    },
-    {
-      "name": "Fashion",
-      "links": [
-        {"name": "Nike", "url": "https://www.nike.com"},
-        {"name": "adidas", "url": "https://www.adidas.com"},
-        {"name": "On", "url": "https://www.on.com"},
-        {"name": "lululemon", "url": "https://shop.lululemon.com"},
-        {"name": "Under Armour", "url": "https://www.underarmour.com"},
-        {"name": "The North Face", "url": "https://www.thenorthface.com"},
-        {"name": "Columbia", "url": "https://www.columbia.com"},
-        {"name": "UNIQLO", "url": "https://www.uniqlo.com/us"},
-        {"name": "Zara", "url": "https://www.zara.com"},
-        {"name": "H&M", "url": "https://www2.hm.com/en_us"},
-        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]},
-        {"name": "New Balance", "url": "https://www.newbalance.com"},
-        {"name": "ASICS", "url": "https://www.asics.com/us/en-us/"},
-        {"name": "Levi's", "url": "https://www.levi.com"},
-        {"name": "Abercrombie", "url": "https://www.abercrombie.com"},
-        {"name": "American Eagle", "url": "https://www.ae.com"},
-        {"name": "Gap", "url": "https://www.gap.com"},
-        {"name": "Nordstrom Rack", "url": "https://www.nordstromrack.com"},
-        {"name": "Macy's", "url": "https://www.macys.com"}
       ]
     },
     {
@@ -133,6 +109,30 @@
         {"name": "Luma", "url": "https://luma.com"},
         {"name": "Regal", "url": "https://www.regmovies.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Regal_Cinemas_logo_2018.svg"]},
         {"name": "AMC Theatres", "url": "https://www.amctheatres.com"}
+      ]
+    },
+    {
+      "name": "Fashion",
+      "links": [
+        {"name": "Nike", "url": "https://www.nike.com"},
+        {"name": "adidas", "url": "https://www.adidas.com"},
+        {"name": "On", "url": "https://www.on.com"},
+        {"name": "lululemon", "url": "https://shop.lululemon.com"},
+        {"name": "Under Armour", "url": "https://www.underarmour.com"},
+        {"name": "The North Face", "url": "https://www.thenorthface.com"},
+        {"name": "Columbia", "url": "https://www.columbia.com"},
+        {"name": "UNIQLO", "url": "https://www.uniqlo.com/us"},
+        {"name": "Zara", "url": "https://www.zara.com"},
+        {"name": "H&M", "url": "https://www2.hm.com/en_us"},
+        {"name": "Bath & Body Works", "url": "https://www.bathandbodyworks.com", "icon": ["https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_stacked_logo.svg", "https://commons.wikimedia.org/wiki/Special:FilePath/Bath_%26_Body_Works_logo.svg"]},
+        {"name": "New Balance", "url": "https://www.newbalance.com"},
+        {"name": "ASICS", "url": "https://www.asics.com/us/en-us/"},
+        {"name": "Levi's", "url": "https://www.levi.com"},
+        {"name": "Abercrombie", "url": "https://www.abercrombie.com"},
+        {"name": "American Eagle", "url": "https://www.ae.com"},
+        {"name": "Gap", "url": "https://www.gap.com"},
+        {"name": "Nordstrom Rack", "url": "https://www.nordstromrack.com"},
+        {"name": "Macy's", "url": "https://www.macys.com"}
       ]
     }
   ]
